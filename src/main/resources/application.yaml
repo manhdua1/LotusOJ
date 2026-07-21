@@ -13,4 +13,6 @@ spring:
     show-sql: true
 
 jwt:
-  signerKey: "ZxcOMdNCkL05fDVhNTnKe2vCKNIMIjaw51NfYp0n3wc"
+  signer-key: "ZxcOMdNCkL05fDVhNTnKe2vCKNIMIjaw51NfYp0n3wc"
+  access-token-duration: 900
+  refresh-token-duration: 604800
