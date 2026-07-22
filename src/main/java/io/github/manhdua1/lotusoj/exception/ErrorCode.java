@@ -20,6 +20,7 @@ public enum ErrorCode {
     EMAIL_REQUIRED(1009, "Email is required", HttpStatus.BAD_REQUEST),
     INVALID_EMAIL(1010, "Invalid email format", HttpStatus.BAD_REQUEST),
     PASSWORD_REQUIRED(1011, "Password is required", HttpStatus.BAD_REQUEST),
+    INVALID_CREDENTIALS(1012, "Invalid email or password", HttpStatus.UNAUTHORIZED),
     ;
 
     int code;

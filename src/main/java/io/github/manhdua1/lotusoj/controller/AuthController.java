@@ -1,5 +1,6 @@
 package io.github.manhdua1.lotusoj.controller;
 
+import io.github.manhdua1.lotusoj.dto.request.LoginRequest;
 import io.github.manhdua1.lotusoj.dto.request.RegisterRequest;
 import io.github.manhdua1.lotusoj.dto.response.ApiResponse;
 import io.github.manhdua1.lotusoj.dto.response.UserResponse;
@@ -22,5 +23,10 @@ public class AuthController {
     @PostMapping("/register")
     public ApiResponse<UserResponse> register(@RequestBody RegisterRequest request) {
         return ApiResponse.success(authService.register(request));
+    }
+
+    @PostMapping("/login")
+    public ApiResponse<String> login(@RequestBody LoginRequest request) {
+        return ApiResponse.success(authService.login(request));
     }
 }
