@@ -1,4 +1,4 @@
-package io.github.manhdua1.lotusoj.config;
+package io.github.manhdua1.lotusoj.security;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
