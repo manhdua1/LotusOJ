@@ -1,5 +1,6 @@
 package io.github.manhdua1.lotusoj.service;
 
+import io.github.manhdua1.lotusoj.dto.request.LoginRequest;
 import io.github.manhdua1.lotusoj.dto.request.RegisterRequest;
 import io.github.manhdua1.lotusoj.dto.response.UserResponse;
 import io.github.manhdua1.lotusoj.entity.User;
@@ -20,6 +21,7 @@ public class AuthService {
     UserRepository userRepository;
     PasswordEncoder passwordEncoder;
     UserMapper userMapper;
+    JwtService jwtService;
 
     public UserResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -38,5 +40,14 @@ public class AuthService {
         return userMapper.toUserResponse(user);
     }
 
+    public String login(LoginRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
+        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            throw new AppException(ErrorCode.INVALID_CREDENTIALS);
+        }
+
+        return jwtService.generateAccessToken(user);
+    }
 }
