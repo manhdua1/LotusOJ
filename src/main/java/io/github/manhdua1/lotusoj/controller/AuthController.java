@@ -5,6 +5,7 @@ import io.github.manhdua1.lotusoj.dto.request.RegisterRequest;
 import io.github.manhdua1.lotusoj.dto.response.ApiResponse;
 import io.github.manhdua1.lotusoj.dto.response.UserResponse;
 import io.github.manhdua1.lotusoj.service.AuthService;
+import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -21,12 +22,12 @@ public class AuthController {
     AuthService authService;
 
     @PostMapping("/register")
-    public ApiResponse<UserResponse> register(@RequestBody RegisterRequest request) {
+    public ApiResponse<UserResponse> register(@RequestBody @Valid RegisterRequest request) {
         return ApiResponse.success(authService.register(request));
     }
 
     @PostMapping("/login")
-    public ApiResponse<String> login(@RequestBody LoginRequest request) {
+    public ApiResponse<String> login(@RequestBody @Valid LoginRequest request) {
         return ApiResponse.success(authService.login(request));
     }
 }
