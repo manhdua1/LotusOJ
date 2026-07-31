@@ -61,4 +61,10 @@ public class AuthService {
 
         return new LoginResult(accessToken, refreshToken);
     }
+
+    public String refresh(String refreshTokenRaw) {
+        User user = refreshTokenService.validateAndGetUser(refreshTokenRaw);
+
+        return jwtService.generateAccessToken(user);
+    }
 }
