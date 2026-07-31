@@ -2,9 +2,12 @@ package io.github.manhdua1.lotusoj.exception;
 
 import io.github.manhdua1.lotusoj.dto.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+
+import java.util.List;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -25,8 +28,22 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(value = MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Void>> handlingValidation(org.springframework.web.bind.MethodArgumentNotValidException exception) {
-        String enumKey = exception.getFieldError() != null ? exception.getFieldError().getDefaultMessage() : null;
+    public ResponseEntity<ApiResponse<Void>> handlingValidation(MethodArgumentNotValidException exception) {
+        List<FieldError> fieldErrors = exception.getBindingResult().getFieldErrors();
+
+        FieldError selectedError = fieldErrors.stream()
+                .filter(error -> {
+                    String msg = error.getDefaultMessage();
+                    String code = error.getCode();
+                    return (msg != null && msg.endsWith("_REQUIRED"))
+                            || "NotBlank".equals(code)
+                            || "NotNull".equals(code)
+                            || "NotEmpty".equals(code);
+                })
+                .findFirst()
+                .orElse(exception.getFieldError());
+
+        String enumKey = selectedError != null ? selectedError.getDefaultMessage() : null;
         ErrorCode errorCode = ErrorCode.INVALID_KEY;
 
         if (enumKey != null) {
