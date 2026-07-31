@@ -94,7 +94,7 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("Should throw USER_NOT_EXISTED exception when email is not found")
+        @DisplayName("Should throw INVALID CREDENTIALS exception when email is not found")
         void login_userNotFound_throwsException() {
             // Given
             when(userRepository.findByEmail(loginRequest.getEmail())).thenReturn(Optional.empty());
@@ -102,7 +102,7 @@ class AuthServiceTest {
             // When & Then
             AppException exception = assertThrows(AppException.class, () -> authService.login(loginRequest));
 
-            assertEquals(ErrorCode.USER_NOT_EXISTED, exception.getErrorCode());
+            assertEquals(ErrorCode.INVALID_CREDENTIALS, exception.getErrorCode());
             verify(userRepository, times(1)).findByEmail(loginRequest.getEmail());
             verifyNoInteractions(passwordEncoder);
             verifyNoInteractions(jwtService);
@@ -140,6 +140,7 @@ class AuthServiceTest {
                     .avatarUrl(registerRequest.getAvatarUrl())
                     .build();
 
+            when(userRepository.existsByUsername(registerRequest.getUsername())).thenReturn(false);
             when(userRepository.existsByEmail(registerRequest.getEmail())).thenReturn(false);
             when(passwordEncoder.encode(registerRequest.getPassword())).thenReturn("hashed_password");
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -151,6 +152,7 @@ class AuthServiceTest {
             // Then
             assertNotNull(response);
             assertEquals(registerRequest.getEmail(), response.getEmail());
+            verify(userRepository, times(1)).existsByUsername(registerRequest.getUsername());
             verify(userRepository, times(1)).existsByEmail(registerRequest.getEmail());
             verify(passwordEncoder, times(1)).encode(registerRequest.getPassword());
             verify(userRepository, times(1)).save(any(User.class));
@@ -158,15 +160,32 @@ class AuthServiceTest {
         }
 
         @Test
+        @DisplayName("Should throw USERNAME_EXISTED exception when username already exists")
+        void register_usernameExists_throwsException() {
+            // Given
+            when(userRepository.existsByUsername(registerRequest.getUsername())).thenReturn(true);
+
+            // When & Then
+            AppException exception = assertThrows(AppException.class, () -> authService.register(registerRequest));
+
+            assertEquals(ErrorCode.USERNAME_EXISTED, exception.getErrorCode());
+            verify(userRepository, times(1)).existsByUsername(registerRequest.getUsername());
+            verify(userRepository, never()).existsByEmail(anyString());
+            verify(userRepository, never()).save(any(User.class));
+        }
+
+        @Test
         @DisplayName("Should throw USER_EXISTED exception when email already exists")
         void register_emailExists_throwsException() {
             // Given
+            when(userRepository.existsByUsername(registerRequest.getUsername())).thenReturn(false);
             when(userRepository.existsByEmail(registerRequest.getEmail())).thenReturn(true);
 
             // When & Then
             AppException exception = assertThrows(AppException.class, () -> authService.register(registerRequest));
 
             assertEquals(ErrorCode.USER_EXISTED, exception.getErrorCode());
+            verify(userRepository, times(1)).existsByUsername(registerRequest.getUsername());
             verify(userRepository, times(1)).existsByEmail(registerRequest.getEmail());
             verify(userRepository, never()).save(any(User.class));
         }
