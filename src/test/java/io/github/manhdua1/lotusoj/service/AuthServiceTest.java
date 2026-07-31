@@ -2,6 +2,7 @@ package io.github.manhdua1.lotusoj.service;
 
 import io.github.manhdua1.lotusoj.dto.request.LoginRequest;
 import io.github.manhdua1.lotusoj.dto.request.RegisterRequest;
+import io.github.manhdua1.lotusoj.dto.response.LoginResult;
 import io.github.manhdua1.lotusoj.dto.response.UserResponse;
 import io.github.manhdua1.lotusoj.entity.User;
 import io.github.manhdua1.lotusoj.exception.AppException;
@@ -40,6 +41,9 @@ class AuthServiceTest {
     @Mock
     private JwtService jwtService;
 
+    @Mock
+    private RefreshTokenService refreshTokenService;
+
     @InjectMocks
     private AuthService authService;
 
@@ -75,22 +79,25 @@ class AuthServiceTest {
     class LoginTests {
 
         @Test
-        @DisplayName("Should successfully login and return JWT token when credentials are valid")
+        @DisplayName("Should successfully login and return LoginResult when credentials are valid")
         void login_success() {
             // Given
             when(userRepository.findByEmail(loginRequest.getEmail())).thenReturn(Optional.of(sampleUser));
             when(passwordEncoder.matches(loginRequest.getPassword(), sampleUser.getPasswordHash())).thenReturn(true);
-            when(jwtService.generateAccessToken(sampleUser)).thenReturn("mocked.jwt.token");
+            when(jwtService.generateAccessToken(sampleUser)).thenReturn("mocked.access.token");
+            when(refreshTokenService.generate(sampleUser)).thenReturn("mocked.refresh.token");
 
             // When
-            String token = authService.login(loginRequest);
+            LoginResult result = authService.login(loginRequest);
 
             // Then
-            assertNotNull(token);
-            assertEquals("mocked.jwt.token", token);
+            assertNotNull(result);
+            assertEquals("mocked.access.token", result.accessToken());
+            assertEquals("mocked.refresh.token", result.refreshToken());
             verify(userRepository, times(1)).findByEmail(loginRequest.getEmail());
             verify(passwordEncoder, times(1)).matches(loginRequest.getPassword(), sampleUser.getPasswordHash());
             verify(jwtService, times(1)).generateAccessToken(sampleUser);
+            verify(refreshTokenService, times(1)).generate(sampleUser);
         }
 
         @Test
@@ -106,6 +113,7 @@ class AuthServiceTest {
             verify(userRepository, times(1)).findByEmail(loginRequest.getEmail());
             verifyNoInteractions(passwordEncoder);
             verifyNoInteractions(jwtService);
+            verifyNoInteractions(refreshTokenService);
         }
 
         @Test
@@ -122,6 +130,7 @@ class AuthServiceTest {
             verify(userRepository, times(1)).findByEmail(loginRequest.getEmail());
             verify(passwordEncoder, times(1)).matches(loginRequest.getPassword(), sampleUser.getPasswordHash());
             verifyNoInteractions(jwtService);
+            verifyNoInteractions(refreshTokenService);
         }
     }
 
