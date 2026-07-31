@@ -23,6 +23,7 @@ public class AuthController {
 
     @PostMapping("/register")
     public ApiResponse<UserResponse> register(@RequestBody @Valid RegisterRequest request) {
+
         return ApiResponse.success(authService.register(request));
     }
 
