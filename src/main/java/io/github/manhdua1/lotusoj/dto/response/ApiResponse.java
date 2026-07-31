@@ -36,4 +36,11 @@ public class ApiResponse<T> {
                 .message(errorCode.getMessage())
                 .build();
     }
+
+    public static <T> ApiResponse<T> error(ErrorCode errorCode, String message) {
+        return ApiResponse.<T>builder()
+                .code(errorCode.getCode())
+                .message(message)
+                .build();
+    }
 }

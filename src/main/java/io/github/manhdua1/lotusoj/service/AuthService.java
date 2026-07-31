@@ -2,6 +2,7 @@ package io.github.manhdua1.lotusoj.service;
 
 import io.github.manhdua1.lotusoj.dto.request.LoginRequest;
 import io.github.manhdua1.lotusoj.dto.request.RegisterRequest;
+import io.github.manhdua1.lotusoj.dto.response.LoginResult;
 import io.github.manhdua1.lotusoj.dto.response.UserResponse;
 import io.github.manhdua1.lotusoj.entity.User;
 import io.github.manhdua1.lotusoj.exception.AppException;
@@ -24,8 +25,13 @@ public class AuthService {
     PasswordEncoder passwordEncoder;
     UserMapper userMapper;
     JwtService jwtService;
+    RefreshTokenService refreshTokenService;
 
     public UserResponse register(RegisterRequest request) {
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new AppException(ErrorCode.USERNAME_EXISTED);
+        }
+
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new AppException(ErrorCode.USER_EXISTED);
         }
@@ -42,14 +48,17 @@ public class AuthService {
         return userMapper.toUserResponse(user);
     }
 
-    public String login(LoginRequest request) {
+    public LoginResult login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_CREDENTIALS));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new AppException(ErrorCode.INVALID_CREDENTIALS);
         }
 
-        return jwtService.generateAccessToken(user);
+        String accessToken = jwtService.generateAccessToken(user);
+        String refreshToken = refreshTokenService.generate(user);
+
+        return new LoginResult(accessToken, refreshToken);
     }
 }
