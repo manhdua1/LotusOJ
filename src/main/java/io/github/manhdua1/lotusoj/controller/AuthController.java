@@ -57,4 +57,20 @@ public class AuthController {
         String newAccessToken = authService.refresh(refreshToken);
         return ApiResponse.success(newAccessToken);
     }
+
+    @PostMapping("/logout")
+    public ApiResponse<Void> logout(
+            @RequestHeader("Authorization") String authHeader,
+            @CookieValue(value = "refreshToken", required = false) String refreshToken,
+            HttpServletResponse response) {
+
+        String accessToken = authHeader.substring(7);
+        authService.logout(accessToken, refreshToken);
+
+        ResponseCookie clearCookie = ResponseCookie.from("refreshToken", "")
+                .httpOnly(true).secure(true).sameSite("Strict").path("/api/auth").maxAge(0).build();
+        response.addHeader(HttpHeaders.SET_COOKIE, clearCookie.toString());
+
+        return ApiResponse.success(null);
+    }
 }
