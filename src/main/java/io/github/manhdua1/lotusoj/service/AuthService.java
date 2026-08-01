@@ -10,6 +10,7 @@ import io.github.manhdua1.lotusoj.exception.ErrorCode;
 import io.github.manhdua1.lotusoj.mapper.UserMapper;
 import io.github.manhdua1.lotusoj.repository.UserRepository;
 import io.jsonwebtoken.Claims;
+import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -70,6 +71,7 @@ public class AuthService {
         return jwtService.generateAccessToken(user);
     }
 
+    @Transactional
     public void logout(String accessToken, String refreshTokenRaw) {
         Claims claims = jwtService.parseClaims(accessToken);
         tokenBlacklistService.blacklist(claims.getId(), claims.getExpiration());

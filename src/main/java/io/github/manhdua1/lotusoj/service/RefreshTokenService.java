@@ -6,6 +6,7 @@ import io.github.manhdua1.lotusoj.exception.AppException;
 import io.github.manhdua1.lotusoj.exception.ErrorCode;
 import io.github.manhdua1.lotusoj.repository.RefreshTokenRepository;
 import io.github.manhdua1.lotusoj.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -56,6 +57,7 @@ public class RefreshTokenService {
         refreshTokenRepository.revokeAllByUserId(userId);
     }
 
+    @Transactional
     public void revoke(String refreshTokenRaw) {
         String hashedToken = hashToken(refreshTokenRaw);
 
