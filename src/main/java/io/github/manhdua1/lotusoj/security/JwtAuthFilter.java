@@ -1,6 +1,7 @@
 package io.github.manhdua1.lotusoj.security;
 
 import io.github.manhdua1.lotusoj.service.JwtService;
+import io.github.manhdua1.lotusoj.service.TokenBlacklistService;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -24,6 +25,7 @@ import java.io.IOException;
 public class JwtAuthFilter extends OncePerRequestFilter {
     JwtService jwtService;
     UserDetailsService userDetailsService;
+    TokenBlacklistService tokenBlacklistService;
 
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
         String authHeader = request.getHeader("Authorization");
@@ -34,10 +36,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             if (jwtService.isValid(token)) {
                 Claims claims = jwtService.parseClaims(token);
 
-                UserDetails userDetails = userDetailsService.loadUserByUsername(claims.getSubject());
-                var authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+                if (!tokenBlacklistService.isBlacklisted(claims.getId())) {
+                    UserDetails userDetails = userDetailsService.loadUserByUsername(claims.getSubject());
+                    var authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities());
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
             }
         }
 
