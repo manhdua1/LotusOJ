@@ -22,7 +22,8 @@ public enum ErrorCode {
     PASSWORD_REQUIRED(1011, "Password is required", HttpStatus.BAD_REQUEST),
     INVALID_CREDENTIALS(1012, "Invalid email or password", HttpStatus.UNAUTHORIZED),
     INVALID_REFRESH_TOKEN(1013, "Invalid refresh token", HttpStatus.BAD_REQUEST),
-    USERNAME_EXISTED(1014, "Username existed", HttpStatus.BAD_REQUEST)
+    USERNAME_EXISTED(1014, "Username existed", HttpStatus.BAD_REQUEST),
+    REFRESH_TOKEN_NOT_FOUND(1015, "Refresh token not found", HttpStatus.BAD_REQUEST)
     ;
 
     int code;
