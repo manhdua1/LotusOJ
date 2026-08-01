@@ -69,6 +69,6 @@ public class AuthService {
     }
 
     public void logout(String refreshTokenRaw) {
-
+        refreshTokenService.revoke(refreshTokenRaw);
     }
 }
