@@ -56,6 +56,15 @@ public class RefreshTokenService {
         refreshTokenRepository.revokeAllByUserId(userId);
     }
 
+    public void revoke(String refreshTokenRaw) {
+        String hashedToken = hashToken(refreshTokenRaw);
+
+        RefreshToken refreshToken = refreshTokenRepository.findByTokenHash(hashedToken)
+                .orElseThrow();
+
+        refreshTokenRepository.revokeById(refreshToken.getId());
+    }
+
     private String hashToken(String rawToken) {
         return DigestUtils.sha256Hex(rawToken);
     }

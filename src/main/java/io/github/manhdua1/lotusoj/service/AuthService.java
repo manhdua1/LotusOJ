@@ -67,4 +67,8 @@ public class AuthService {
 
         return jwtService.generateAccessToken(user);
     }
+
+    public void logout(String refreshTokenRaw) {
+
+    }
 }
