@@ -9,6 +9,7 @@ import io.github.manhdua1.lotusoj.exception.AppException;
 import io.github.manhdua1.lotusoj.exception.ErrorCode;
 import io.github.manhdua1.lotusoj.mapper.UserMapper;
 import io.github.manhdua1.lotusoj.repository.UserRepository;
+import io.jsonwebtoken.Claims;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -26,6 +27,7 @@ public class AuthService {
     UserMapper userMapper;
     JwtService jwtService;
     RefreshTokenService refreshTokenService;
+    TokenBlacklistService tokenBlacklistService;
 
     public UserResponse register(RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
@@ -68,7 +70,10 @@ public class AuthService {
         return jwtService.generateAccessToken(user);
     }
 
-    public void logout(String refreshTokenRaw) {
+    public void logout(String accessToken, String refreshTokenRaw) {
+        Claims claims = jwtService.parseClaims(accessToken);
+        tokenBlacklistService.blacklist(claims.getId(), claims.getExpiration());
+
         refreshTokenService.revoke(refreshTokenRaw);
     }
 }
