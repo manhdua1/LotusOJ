@@ -60,7 +60,7 @@ public class RefreshTokenService {
         String hashedToken = hashToken(refreshTokenRaw);
 
         RefreshToken refreshToken = refreshTokenRepository.findByTokenHash(hashedToken)
-                .orElseThrow();
+                .orElseThrow(() -> new AppException(ErrorCode.REFRESH_TOKEN_NOT_FOUND));
 
         refreshTokenRepository.revokeById(refreshToken.getId());
     }
