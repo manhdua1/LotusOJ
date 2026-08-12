@@ -1,7 +1,7 @@
 package io.github.manhdua1.lotusoj.security;
 
-import io.github.manhdua1.lotusoj.service.JwtService;
-import io.github.manhdua1.lotusoj.service.TokenBlacklistService;
+import io.github.manhdua1.lotusoj.service.impl.JwtServiceImpl;
+import io.github.manhdua1.lotusoj.service.impl.TokenBlacklistServiceImpl;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -23,9 +23,9 @@ import java.io.IOException;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class JwtAuthFilter extends OncePerRequestFilter {
-    JwtService jwtService;
+    JwtServiceImpl jwtService;
     UserDetailsService userDetailsService;
-    TokenBlacklistService tokenBlacklistService;
+    TokenBlacklistServiceImpl tokenBlacklistService;
 
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
         String authHeader = request.getHeader("Authorization");

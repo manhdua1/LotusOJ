@@ -5,7 +5,7 @@ import io.github.manhdua1.lotusoj.dto.request.RegisterRequest;
 import io.github.manhdua1.lotusoj.dto.response.ApiResponse;
 import io.github.manhdua1.lotusoj.dto.response.LoginResult;
 import io.github.manhdua1.lotusoj.dto.response.UserResponse;
-import io.github.manhdua1.lotusoj.service.AuthService;
+import io.github.manhdua1.lotusoj.service.impl.AuthServiceImpl;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -14,17 +14,14 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.time.Duration;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/auth")
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class AuthController {
-    final AuthService authService;
+    final AuthServiceImpl authService;
 
     @Value("${jwt.refresh-token-duration}")
     long refreshTokenDuration;

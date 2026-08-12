@@ -1,6 +1,7 @@
 package io.github.manhdua1.lotusoj.service;
 
 import io.github.manhdua1.lotusoj.entity.User;
+import io.github.manhdua1.lotusoj.service.impl.JwtServiceImpl;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 
@@ -20,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class JwtServiceTest {
 
     @InjectMocks
-    private JwtService jwtService;
+    private JwtServiceImpl jwtService;
 
     // HS512 requires a secret key of at least 512 bits (64 bytes)
     private static final String SECRET_KEY = "1234567890123456789012345678901234567890123456789012345678901234";

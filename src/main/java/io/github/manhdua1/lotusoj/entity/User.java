@@ -42,7 +42,7 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    Status status = Status.PENDING_VERIFICATION;
+    Status status = Status.ACTIVE;
 
     @Column(name = "total_solved", nullable = false)
     @Builder.Default
@@ -68,7 +68,6 @@ public class User {
     }
 
     public enum Status {
-        PENDING_VERIFICATION,
         ACTIVE,
         BANNED
     }

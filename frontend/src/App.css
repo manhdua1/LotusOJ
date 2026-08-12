@@ -1,0 +1,44 @@
+/* Custom styles specific to App layout if needed */
+.auth-switch-bar {
+  margin-bottom: 14px;
+  display: flex;
+  gap: 8px;
+}
+
+.auth-tab-btn {
+  padding: 6px 14px;
+  border: 1px solid #b9b9b9;
+  background-color: #f7f7f7;
+  color: #3b5998;
+  font-weight: bold;
+  font-size: 12px;
+  border-radius: 4px 4px 0 0;
+  cursor: pointer;
+}
+
+.auth-tab-btn.active {
+  background-color: #ffffff;
+  border-bottom-color: #ffffff;
+  color: #111111;
+}
+
+.welcome-user-card {
+  text-align: center;
+  padding: 30px 20px;
+}
+
+.welcome-user-card h3 {
+  font-size: 18px;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.user-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  background-color: #e3f2fd;
+  color: #0d47a1;
+  border-radius: 12px;
+  font-weight: bold;
+  margin: 10px 0;
+}
