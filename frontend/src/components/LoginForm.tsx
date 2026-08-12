@@ -21,9 +21,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
   const validate = (): boolean => {
     const errors: { email?: string; password?: string } = {}
-    if (!email.trim()) {
-      errors.email = 'Vui lòng nhập tên đăng nhập (handle) hoặc email.'
+    const trimmedEmail = email.trim()
+    if (!trimmedEmail) {
+      errors.email = 'Vui lòng nhập địa chỉ email.'
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      errors.email = 'Địa chỉ email không đúng định dạng.'
     }
+
     if (!password) {
       errors.password = 'Vui lòng nhập mật khẩu.'
     }
@@ -100,17 +104,17 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         <form onSubmit={handleSubmit} noValidate>
           <table className="cf-form-table">
             <tbody>
-              {/* Handle / Email Field */}
+              {/* Email Field */}
               <tr>
                 <td className="field-name">
                   <label htmlFor="login-email">
-                    Tên đăng nhập / Email<span className="required-star">*</span>
+                    Địa chỉ Email<span className="required-star">*</span>
                   </label>
                 </td>
                 <td className="field-value">
                   <input
                     id="login-email"
-                    type="text"
+                    type="email"
                     className={`cf-input ${fieldErrors.email ? 'input-error' : ''}`}
                     value={email}
                     onChange={(e) => {
@@ -119,8 +123,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                         setFieldErrors((prev) => ({ ...prev, email: undefined }))
                       }
                     }}
-                    placeholder="vd: manh_nguyen hoặc user@example.com"
-                    autoComplete="username"
+                    placeholder="vd: name@example.com"
+                    autoComplete="email"
                     disabled={loading}
                     autoFocus
                   />
