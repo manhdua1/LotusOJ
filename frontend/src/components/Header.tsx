@@ -1,0 +1,167 @@
+import React from 'react'
+import type { UserResponse } from '../types/auth'
+
+interface HeaderProps {
+  currentTab: 'login' | 'register' | 'home' | string
+  onNavigate: (tab: 'login' | 'register' | 'home') => void
+  user: UserResponse | null
+  onLogout: () => void
+}
+
+export const Header: React.FC<HeaderProps> = ({
+  currentTab,
+  onNavigate,
+  user,
+  onLogout,
+}) => {
+  return (
+    <header className="site-header">
+      {/* Top Bar */}
+      <div className="header-top">
+        <a
+          href="#home"
+          className="logo-area"
+          onClick={(e) => {
+            e.preventDefault()
+            onNavigate('home')
+          }}
+          title="Trang chủ LotusOJ"
+        >
+          <div className="logo-icon-wrap" aria-hidden="true">
+            <div className="cf-bar cf-bar-1"></div>
+            <div className="cf-bar cf-bar-2"></div>
+            <div className="cf-bar cf-bar-3"></div>
+          </div>
+          <div>
+            <div className="lotus-brand">
+              <span className="brand-part1">Lotus</span>
+              <span className="brand-part2">OJ</span>
+            </div>
+            <span className="brand-subtitle">
+              Nền tảng thi đấu lập trình trực tuyến
+            </span>
+          </div>
+        </a>
+
+        <div className="header-meta">
+          <div className="header-lang">
+            <span style={{ color: '#555' }}>Ngôn ngữ: </span>
+            <span style={{ fontWeight: 'bold', color: '#111' }}>Tiếng Việt</span>
+          </div>
+
+          <div className="header-auth">
+            {user ? (
+              <div className="header-user-info">
+                <span>Xin chào,</span>
+                <span className="user-handle specialist">{user.username}</span>
+                <span>|</span>
+                <button
+                  type="button"
+                  className="logout-btn"
+                  onClick={onLogout}
+                  title="Đăng xuất khỏi hệ thống"
+                >
+                  Đăng xuất
+                </button>
+              </div>
+            ) : (
+              <div>
+                <a
+                  href="#login"
+                  style={{
+                    fontWeight: currentTab === 'login' ? 'bold' : 'normal',
+                    color: currentTab === 'login' ? '#111' : '#1755a6',
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    onNavigate('login')
+                  }}
+                >
+                  Đăng nhập
+                </a>
+                {' | '}
+                <a
+                  href="#register"
+                  style={{
+                    fontWeight: currentTab === 'register' ? 'bold' : 'normal',
+                    color: currentTab === 'register' ? '#111' : '#1755a6',
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    onNavigate('register')
+                  }}
+                >
+                  Đăng ký
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Navigation Bar */}
+      <nav className="main-nav" aria-label="Điều hướng chính">
+        <ul className="nav-links">
+          <li className={`nav-item ${currentTab === 'home' ? 'active' : ''}`}>
+            <button type="button" onClick={() => onNavigate('home')}>
+              TRANG CHỦ
+            </button>
+          </li>
+          <li className="nav-item">
+            <a href="#top" onClick={(e) => e.preventDefault()}>
+              BẢNG XẾP HẠNG
+            </a>
+          </li>
+          <li className="nav-item">
+            <a href="#contests" onClick={(e) => e.preventDefault()}>
+              KỲ THI
+            </a>
+          </li>
+          <li className="nav-item">
+            <a href="#gym" onClick={(e) => e.preventDefault()}>
+              PHÒNG LUYỆN
+            </a>
+          </li>
+          <li className="nav-item">
+            <a href="#problemset" onClick={(e) => e.preventDefault()}>
+              KHO BÀI TẬP
+            </a>
+          </li>
+          <li className="nav-item">
+            <a href="#groups" onClick={(e) => e.preventDefault()}>
+              NHÓM
+            </a>
+          </li>
+          <li className="nav-item">
+            <a href="#rating" onClick={(e) => e.preventDefault()}>
+              ĐIỂM RATING
+            </a>
+          </li>
+          <li className="nav-item">
+            <a href="#edu" onClick={(e) => e.preventDefault()}>
+              HỌC TẬP
+            </a>
+          </li>
+          <li className="nav-item">
+            <a href="#help" onClick={(e) => e.preventDefault()}>
+              TRỢ GIÚP
+            </a>
+          </li>
+        </ul>
+
+        <div className="nav-search">
+          <input
+            type="text"
+            placeholder="Tìm kiếm bài tập..."
+            aria-label="Tìm kiếm bài tập"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+              }
+            }}
+          />
+        </div>
+      </nav>
+    </header>
+  )
+}

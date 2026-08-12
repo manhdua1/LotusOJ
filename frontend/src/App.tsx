@@ -1,121 +1,167 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import { useEffect, useState } from 'react'
+import { Header } from './components/Header'
+import { LoginForm } from './components/LoginForm'
+import { RegisterForm } from './components/RegisterForm'
+import { Sidebar } from './components/Sidebar'
+import { Footer } from './components/Footer'
+import { authService } from './services/authService'
+import type { UserResponse } from './types/auth'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [currentTab, setCurrentTab] = useState<'login' | 'register' | 'home'>('login')
+  const [user, setUser] = useState<UserResponse | null>(null)
+  const [actionNotice, setActionNotice] = useState<string | null>(null)
+
+  // Initialize auth state and hash routing
+  useEffect(() => {
+    const savedUser = authService.getUser()
+    if (savedUser) {
+      setUser(savedUser)
+    }
+
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '')
+      if (hash === 'register' || hash === 'dang-ky') {
+        setCurrentTab('register')
+      } else if (hash === 'login' || hash === 'enter' || hash === 'dang-nhap') {
+        setCurrentTab('login')
+      } else if (hash === 'home' || hash === 'trang-chu') {
+        setCurrentTab('home')
+      }
+    }
+
+    handleHashChange()
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [])
+
+  const handleNavigate = (tab: 'login' | 'register' | 'home') => {
+    setCurrentTab(tab)
+    window.location.hash = tab
+    setActionNotice(null)
+  }
+
+  const handleLoginSuccess = (loggedInUser: UserResponse, _token: string) => {
+    setUser(loggedInUser)
+    setActionNotice(`Chào mừng ${loggedInUser.username} đã quay trở lại hệ thống LotusOJ!`)
+    setCurrentTab('home')
+  }
+
+  const handleRegisterSuccess = (registeredUser: UserResponse) => {
+    setActionNotice(`Đăng ký thành công tài khoản "${registeredUser.username}". Vui lòng đăng nhập vào hệ thống!`)
+    setCurrentTab('login')
+    window.location.hash = 'login'
+  }
+
+  const handleLogout = async () => {
+    await authService.logout()
+    setUser(null)
+    setActionNotice('Bạn đã đăng xuất khỏi hệ thống thành công.')
+    setCurrentTab('login')
+    window.location.hash = 'login'
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="page-container">
+      {/* Codeforces Header */}
+      <Header
+        currentTab={currentTab}
+        onNavigate={handleNavigate}
+        user={user}
+        onLogout={handleLogout}
+      />
 
-      <div className="ticks"></div>
+      {/* Main Container */}
+      <main className="main-content">
+        {actionNotice && (
+          <div className="cf-notice cf-notice-info" style={{ marginBottom: '14px' }}>
+            {actionNotice}
+          </div>
+        )}
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
+        <div className="content-layout">
+          {/* Left Column: Form or Content */}
+          <div className="main-form-column">
+            {/* Tab switch bar */}
+            {!user && (
+              <div className="auth-switch-bar">
+                <button
+                  type="button"
+                  className={`auth-tab-btn ${currentTab === 'login' ? 'active' : ''}`}
+                  onClick={() => handleNavigate('login')}
                 >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
+                  Đăng nhập
+                </button>
+                <button
+                  type="button"
+                  className={`auth-tab-btn ${currentTab === 'register' ? 'active' : ''}`}
+                  onClick={() => handleNavigate('register')}
                 >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+                  Đăng ký tài khoản
+                </button>
+              </div>
+            )}
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+            {/* View Switching */}
+            {user && currentTab === 'home' ? (
+              <div className="roundbox">
+                <div className="caption titled">
+                  <span>
+                    <span className="caption-arrow">→</span> Bảng điều khiển cá nhân
+                  </span>
+                </div>
+                <div className="roundbox-body welcome-user-card">
+                  <h3>Xin chào, <span className="user-handle specialist">{user.username}</span>!</h3>
+                  <div className="user-badge">
+                    Điểm Rating: {user.rating || 1500} ({user.rank || 'Chuyên viên'})
+                  </div>
+                  <p style={{ color: '#666', marginTop: '10px', fontSize: '13px' }}>
+                    Email tài khoản: <strong>{user.email}</strong>
+                  </p>
+                  <p style={{ color: '#888', marginTop: '6px', fontSize: '12px' }}>
+                    Bạn đã đăng nhập thành công vào LotusOJ. Hãy bắt đầu giải các bài toán tại mục <strong>KHO BÀI TẬP</strong> hoặc thử thách bản thân trong các <strong>KỲ THI</strong> sắp tới.
+                  </p>
+
+                  <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                    <button
+                      type="button"
+                      className="btn-cf btn-cf-primary"
+                      onClick={() => alert('Mục Kho bài tập đang được cập nhật.')}
+                    >
+                      Xem kho bài tập
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-cf"
+                      onClick={handleLogout}
+                    >
+                      Đăng xuất
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : currentTab === 'register' ? (
+              <RegisterForm
+                onSuccess={handleRegisterSuccess}
+                onSwitchToLogin={() => handleNavigate('login')}
+              />
+            ) : (
+              <LoginForm
+                onSuccess={handleLoginSuccess}
+                onSwitchToRegister={() => handleNavigate('register')}
+              />
+            )}
+          </div>
+
+          {/* Right Column: Codeforces Info Sidebar */}
+          <Sidebar />
+        </div>
+      </main>
+
+      {/* Codeforces Footer */}
+      <Footer />
+    </div>
   )
 }
 
