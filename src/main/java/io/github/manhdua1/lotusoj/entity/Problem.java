@@ -1,7 +1,6 @@
 package io.github.manhdua1.lotusoj.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -9,7 +8,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "users")
+@Table(name = "problems")
 @Data
 @Builder
 @NoArgsConstructor
