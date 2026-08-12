@@ -9,6 +9,9 @@ import io.github.manhdua1.lotusoj.exception.AppException;
 import io.github.manhdua1.lotusoj.exception.ErrorCode;
 import io.github.manhdua1.lotusoj.mapper.UserMapper;
 import io.github.manhdua1.lotusoj.repository.UserRepository;
+import io.github.manhdua1.lotusoj.service.impl.AuthServiceImpl;
+import io.github.manhdua1.lotusoj.service.impl.JwtServiceImpl;
+import io.github.manhdua1.lotusoj.service.impl.RefreshTokenServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -39,13 +42,13 @@ class AuthServiceTest {
     private UserMapper userMapper;
 
     @Mock
-    private JwtService jwtService;
+    private JwtServiceImpl jwtService;
 
     @Mock
-    private RefreshTokenService refreshTokenService;
+    private RefreshTokenServiceImpl refreshTokenService;
 
     @InjectMocks
-    private AuthService authService;
+    private AuthServiceImpl authService;
 
     private User sampleUser;
     private LoginRequest loginRequest;

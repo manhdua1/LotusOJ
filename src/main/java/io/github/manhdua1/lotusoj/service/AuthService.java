@@ -4,78 +4,14 @@ import io.github.manhdua1.lotusoj.dto.request.LoginRequest;
 import io.github.manhdua1.lotusoj.dto.request.RegisterRequest;
 import io.github.manhdua1.lotusoj.dto.response.LoginResult;
 import io.github.manhdua1.lotusoj.dto.response.UserResponse;
-import io.github.manhdua1.lotusoj.entity.User;
-import io.github.manhdua1.lotusoj.exception.AppException;
-import io.github.manhdua1.lotusoj.exception.ErrorCode;
-import io.github.manhdua1.lotusoj.mapper.UserMapper;
-import io.github.manhdua1.lotusoj.repository.UserRepository;
-import io.jsonwebtoken.Claims;
-import jakarta.transaction.Transactional;
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
 
-@RequiredArgsConstructor
-@Service
-@Slf4j
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class AuthService {
-    UserRepository userRepository;
-    PasswordEncoder passwordEncoder;
-    UserMapper userMapper;
-    JwtService jwtService;
-    RefreshTokenService refreshTokenService;
-    TokenBlacklistService tokenBlacklistService;
+public interface AuthService {
 
-    public UserResponse register(RegisterRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new AppException(ErrorCode.USERNAME_EXISTED);
-        }
+    UserResponse register(RegisterRequest request);
 
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new AppException(ErrorCode.USER_EXISTED);
-        }
+    LoginResult login(LoginRequest request);
 
-        User user = User.builder()
-                .email(request.getEmail())
-                .username(request.getUsername())
-                .avatarUrl(request.getAvatarUrl())
-                .passwordHash(passwordEncoder.encode(request.getPassword()))
-                .build();
+    String refresh(String refreshTokenRaw);
 
-        userRepository.save(user);
-
-        return userMapper.toUserResponse(user);
-    }
-
-    public LoginResult login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new AppException(ErrorCode.INVALID_CREDENTIALS));
-
-        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new AppException(ErrorCode.INVALID_CREDENTIALS);
-        }
-
-        String accessToken = jwtService.generateAccessToken(user);
-        String refreshToken = refreshTokenService.generate(user);
-
-        return new LoginResult(accessToken, refreshToken);
-    }
-
-    public String refresh(String refreshTokenRaw) {
-        User user = refreshTokenService.validateAndGetUser(refreshTokenRaw);
-
-        return jwtService.generateAccessToken(user);
-    }
-
-    @Transactional
-    public void logout(String accessToken, String refreshTokenRaw) {
-        Claims claims = jwtService.parseClaims(accessToken);
-        tokenBlacklistService.blacklist(claims.getId(), claims.getExpiration());
-
-        refreshTokenService.revoke(refreshTokenRaw);
-    }
+    void logout(String accessToken, String refreshTokenRaw);
 }
