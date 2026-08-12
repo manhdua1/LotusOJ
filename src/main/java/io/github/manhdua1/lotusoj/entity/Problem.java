@@ -5,11 +5,14 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
 @Table(name = "problems")
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -49,7 +52,16 @@ public class Problem {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    ProblemDifficult difficulty;
+    ProblemDifficulty difficulty;
+
+    @ManyToMany
+    @JoinTable(
+            name = "problem_tags",
+            joinColumns = @JoinColumn(name = "problem_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    @Builder.Default
+    Set<Tag> tags = new HashSet<>();
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -57,13 +69,16 @@ public class Problem {
     ProblemStatus status = ProblemStatus.DRAFT;
 
     @Column(name = "total_submissions", nullable = false)
+    @Builder.Default
     Integer totalSubmissions = 0;
 
     @Column(name = "total_accepted", nullable = false)
+    @Builder.Default
     Integer totalAccepted = 0;
 
-    @Column(name = "created_by", nullable = false, columnDefinition = "BINARY(16)")
-    UUID createdBy;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", nullable = false)
+    User createdBy;
 
     @Column(name = "created_at", nullable = false)
     LocalDateTime createdAt;
@@ -72,9 +87,10 @@ public class Problem {
     LocalDateTime updatedAt;
 
     @Column(name = "is_deleted", nullable = false)
+    @Builder.Default
     Boolean isDeleted = false;
 
-    public enum ProblemDifficult {
+    public enum ProblemDifficulty {
         EASY,
         MEDIUM,
         HARD
