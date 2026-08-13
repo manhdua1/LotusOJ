@@ -2,6 +2,7 @@ package io.github.manhdua1.lotusoj.dto.response.problem;
 
 import lombok.*;
 
+import java.util.Map;
 import java.util.UUID;
 
 @Getter
@@ -14,5 +15,5 @@ public class ProblemStatResponse {
     private Integer totalSubmissions;
     private Integer totalAccepted;
     private Double acceptanceRate;
-    //private Map<Language, Integer> submissionsByLanguage; // ví dụ {CPP: 120, JAVA: 45, PYTHON: 80}
+    private Map<String, Integer> submissionsByLanguage; // ví dụ {CPP: 120, JAVA: 45, PYTHON: 80}
 }

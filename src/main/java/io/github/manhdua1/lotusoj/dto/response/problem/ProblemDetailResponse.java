@@ -1,5 +1,6 @@
 package io.github.manhdua1.lotusoj.dto.response.problem;
 
+import io.github.manhdua1.lotusoj.dto.response.testCase.TestCaseResponse;
 import io.github.manhdua1.lotusoj.entity.problem.Problem;
 import lombok.*;
 
@@ -27,7 +28,7 @@ public class ProblemDetailResponse {
     private Problem.ProblemDifficulty difficulty;
     private Problem.ProblemStatus status;
     private List<String> tags;
-    //private List<TestCaseResponse> sampleTestCases; // chỉ test case có isSample=true
+    private List<TestCaseResponse> sampleTestCases; // chỉ test case có isSample=true
     private Double acceptanceRate;
     private LocalDateTime createdAt;
     //private ProblemPermissions permissions; // canEdit, canDelete, canPublish (đã bàn ở phần phân quyền theo nút)
