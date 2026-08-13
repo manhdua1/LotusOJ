@@ -1,7 +1,7 @@
 package io.github.manhdua1.lotusoj.service;
 
-import io.github.manhdua1.lotusoj.entity.User;
-import io.github.manhdua1.lotusoj.service.impl.JwtServiceImpl;
+import io.github.manhdua1.lotusoj.entity.auth.User;
+import io.github.manhdua1.lotusoj.service.auth.impl.JwtServiceImpl;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 

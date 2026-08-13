@@ -1,5 +1,6 @@
-package io.github.manhdua1.lotusoj.entity;
+package io.github.manhdua1.lotusoj.entity.problem;
 
+import io.github.manhdua1.lotusoj.entity.auth.User;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;

@@ -1,7 +1,7 @@
-package io.github.manhdua1.lotusoj.dto.response;
+package io.github.manhdua1.lotusoj.dto.response.auth;
 
-import io.github.manhdua1.lotusoj.entity.User.Role;
-import io.github.manhdua1.lotusoj.entity.User.Status;
+import io.github.manhdua1.lotusoj.entity.auth.User.Role;
+import io.github.manhdua1.lotusoj.entity.auth.User.Status;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 

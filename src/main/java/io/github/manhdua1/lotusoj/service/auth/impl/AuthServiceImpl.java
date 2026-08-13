@@ -1,15 +1,15 @@
-package io.github.manhdua1.lotusoj.service.impl;
+package io.github.manhdua1.lotusoj.service.auth.impl;
 
-import io.github.manhdua1.lotusoj.dto.request.LoginRequest;
-import io.github.manhdua1.lotusoj.dto.request.RegisterRequest;
-import io.github.manhdua1.lotusoj.dto.response.LoginResult;
-import io.github.manhdua1.lotusoj.dto.response.UserResponse;
-import io.github.manhdua1.lotusoj.entity.User;
+import io.github.manhdua1.lotusoj.dto.request.auth.LoginRequest;
+import io.github.manhdua1.lotusoj.dto.request.auth.RegisterRequest;
+import io.github.manhdua1.lotusoj.dto.response.auth.LoginResult;
+import io.github.manhdua1.lotusoj.dto.response.auth.UserResponse;
+import io.github.manhdua1.lotusoj.entity.auth.User;
 import io.github.manhdua1.lotusoj.exception.AppException;
 import io.github.manhdua1.lotusoj.exception.ErrorCode;
 import io.github.manhdua1.lotusoj.mapper.UserMapper;
-import io.github.manhdua1.lotusoj.repository.UserRepository;
-import io.github.manhdua1.lotusoj.service.AuthService;
+import io.github.manhdua1.lotusoj.repository.auth.UserRepository;
+import io.github.manhdua1.lotusoj.service.auth.AuthService;
 import io.jsonwebtoken.Claims;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;

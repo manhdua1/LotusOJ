@@ -1,6 +1,6 @@
-package io.github.manhdua1.lotusoj.repository;
+package io.github.manhdua1.lotusoj.repository.auth;
 
-import io.github.manhdua1.lotusoj.entity.RefreshToken;
+import io.github.manhdua1.lotusoj.entity.auth.RefreshToken;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

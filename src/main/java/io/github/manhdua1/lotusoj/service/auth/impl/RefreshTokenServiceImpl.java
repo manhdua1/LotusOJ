@@ -1,12 +1,12 @@
-package io.github.manhdua1.lotusoj.service.impl;
+package io.github.manhdua1.lotusoj.service.auth.impl;
 
-import io.github.manhdua1.lotusoj.entity.RefreshToken;
-import io.github.manhdua1.lotusoj.entity.User;
+import io.github.manhdua1.lotusoj.entity.auth.RefreshToken;
+import io.github.manhdua1.lotusoj.entity.auth.User;
 import io.github.manhdua1.lotusoj.exception.AppException;
 import io.github.manhdua1.lotusoj.exception.ErrorCode;
-import io.github.manhdua1.lotusoj.repository.RefreshTokenRepository;
-import io.github.manhdua1.lotusoj.repository.UserRepository;
-import io.github.manhdua1.lotusoj.service.RefreshTokenService;
+import io.github.manhdua1.lotusoj.repository.auth.RefreshTokenRepository;
+import io.github.manhdua1.lotusoj.repository.auth.UserRepository;
+import io.github.manhdua1.lotusoj.service.auth.RefreshTokenService;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;

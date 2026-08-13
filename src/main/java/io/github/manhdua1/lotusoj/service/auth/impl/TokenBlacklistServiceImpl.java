@@ -1,6 +1,6 @@
-package io.github.manhdua1.lotusoj.service.impl;
+package io.github.manhdua1.lotusoj.service.auth.impl;
 
-import io.github.manhdua1.lotusoj.service.TokenBlacklistService;
+import io.github.manhdua1.lotusoj.service.auth.TokenBlacklistService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;

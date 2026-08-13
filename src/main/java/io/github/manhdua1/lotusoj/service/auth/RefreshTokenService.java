@@ -1,6 +1,6 @@
-package io.github.manhdua1.lotusoj.service;
+package io.github.manhdua1.lotusoj.service.auth;
 
-import io.github.manhdua1.lotusoj.entity.User;
+import io.github.manhdua1.lotusoj.entity.auth.User;
 
 import java.util.UUID;
 

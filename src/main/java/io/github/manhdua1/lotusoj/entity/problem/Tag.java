@@ -1,4 +1,4 @@
-package io.github.manhdua1.lotusoj.entity;
+package io.github.manhdua1.lotusoj.entity.problem;
 
 import jakarta.persistence.*;
 import lombok.*;

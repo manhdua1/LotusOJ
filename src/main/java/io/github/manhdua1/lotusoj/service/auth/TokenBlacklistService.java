@@ -1,4 +1,4 @@
-package io.github.manhdua1.lotusoj.service;
+package io.github.manhdua1.lotusoj.service.auth;
 
 import java.util.Date;
 

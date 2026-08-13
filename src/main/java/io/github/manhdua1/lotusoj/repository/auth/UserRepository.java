@@ -1,6 +1,6 @@
-package io.github.manhdua1.lotusoj.repository;
+package io.github.manhdua1.lotusoj.repository.auth;
 
-import io.github.manhdua1.lotusoj.entity.User;
+import io.github.manhdua1.lotusoj.entity.auth.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
