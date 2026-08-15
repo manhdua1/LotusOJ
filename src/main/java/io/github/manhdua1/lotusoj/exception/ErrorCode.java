@@ -23,7 +23,11 @@ public enum ErrorCode {
     INVALID_CREDENTIALS(1012, "Invalid email or password", HttpStatus.UNAUTHORIZED),
     INVALID_REFRESH_TOKEN(1013, "Invalid refresh token", HttpStatus.BAD_REQUEST),
     USERNAME_EXISTED(1014, "Username existed", HttpStatus.BAD_REQUEST),
-    REFRESH_TOKEN_NOT_FOUND(1015, "Refresh token not found", HttpStatus.BAD_REQUEST)
+    REFRESH_TOKEN_NOT_FOUND(1015, "Refresh token not found", HttpStatus.BAD_REQUEST),
+    PROBLEM_NOT_FOUND(1016, "Problem not found", HttpStatus.NOT_FOUND),
+    SLUG_EXISTED(1017, "Problem slug already exists", HttpStatus.BAD_REQUEST),
+    TAG_NOT_FOUND(1018, "Tag not found", HttpStatus.NOT_FOUND),
+    UNAUTHORIZED_OPERATION(1019, "You do not have permission to perform this operation", HttpStatus.FORBIDDEN)
     ;
 
     int code;
