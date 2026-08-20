@@ -1,17 +1,22 @@
 import { useEffect, useState } from 'react'
-import { Header } from './components/Header'
+import { Header, type NavTab } from './components/Header'
 import { LoginForm } from './components/LoginForm'
 import { RegisterForm } from './components/RegisterForm'
 import { Sidebar } from './components/Sidebar'
 import { Footer } from './components/Footer'
+import { ProblemList } from './components/ProblemList'
+import { ProblemDetail } from './components/ProblemDetail'
 import { authService } from './services/authService'
 import type { UserResponse } from './types/auth'
 import './App.css'
 
 function App() {
-  const [currentTab, setCurrentTab] = useState<'login' | 'register' | 'home'>('login')
+  const [currentTab, setCurrentTab] = useState<NavTab>('problemset')
   const [user, setUser] = useState<UserResponse | null>(null)
   const [actionNotice, setActionNotice] = useState<string | null>(null)
+  const [selectedSlug, setSelectedSlug] = useState<string>('two-sum')
+  const [activeTagFilter, setActiveTagFilter] = useState<string>('')
+  const [searchKeyword, setSearchKeyword] = useState<string>('')
 
   // Initialize auth state and hash routing
   useEffect(() => {
@@ -28,6 +33,17 @@ function App() {
         setCurrentTab('login')
       } else if (hash === 'home' || hash === 'trang-chu') {
         setCurrentTab('home')
+      } else if (hash.startsWith('problem/')) {
+        const slug = hash.replace('problem/', '')
+        if (slug) {
+          setSelectedSlug(slug)
+          setCurrentTab('problem-detail')
+        }
+      } else if (hash === 'problemset' || hash === 'problems' || hash === 'kho-bai-tap') {
+        setCurrentTab('problemset')
+      } else if (hash === '') {
+        // Default landing page
+        setCurrentTab(savedUser ? 'home' : 'problemset')
       }
     }
 
@@ -36,16 +52,41 @@ function App() {
     return () => window.removeEventListener('hashchange', handleHashChange)
   }, [])
 
-  const handleNavigate = (tab: 'login' | 'register' | 'home') => {
+  const handleNavigate = (tab: NavTab) => {
     setCurrentTab(tab)
-    window.location.hash = tab
+    if (tab === 'problemset') {
+      window.location.hash = 'problemset'
+    } else if (tab === 'problem-detail') {
+      window.location.hash = `problem/${selectedSlug}`
+    } else {
+      window.location.hash = tab
+    }
     setActionNotice(null)
+  }
+
+  const handleSelectProblem = (slug: string) => {
+    setSelectedSlug(slug)
+    setCurrentTab('problem-detail')
+    window.location.hash = `problem/${slug}`
+  }
+
+  const handleSelectTag = (tag: string) => {
+    setActiveTagFilter(tag)
+    setCurrentTab('problemset')
+    window.location.hash = 'problemset'
+  }
+
+  const handleHeaderSearch = (keyword: string) => {
+    setSearchKeyword(keyword)
+    setCurrentTab('problemset')
+    window.location.hash = 'problemset'
   }
 
   const handleLoginSuccess = (loggedInUser: UserResponse, _token: string) => {
     setUser(loggedInUser)
     setActionNotice(`Chào mừng ${loggedInUser.username} đã quay trở lại hệ thống LotusOJ!`)
     setCurrentTab('home')
+    window.location.hash = 'home'
   }
 
   const handleRegisterSuccess = (registeredUser: UserResponse) => {
@@ -70,6 +111,7 @@ function App() {
         onNavigate={handleNavigate}
         user={user}
         onLogout={handleLogout}
+        onSearchProblem={handleHeaderSearch}
       />
 
       {/* Main Container */}
@@ -80,83 +122,103 @@ function App() {
           </div>
         )}
 
-        <div className="content-layout">
-          {/* Left Column: Form or Content */}
-          <div className="main-form-column">
-            {/* Tab switch bar */}
-            {!user && (
-              <div className="auth-switch-bar">
-                <button
-                  type="button"
-                  className={`auth-tab-btn ${currentTab === 'login' ? 'active' : ''}`}
-                  onClick={() => handleNavigate('login')}
-                >
-                  Đăng nhập
-                </button>
-                <button
-                  type="button"
-                  className={`auth-tab-btn ${currentTab === 'register' ? 'active' : ''}`}
-                  onClick={() => handleNavigate('register')}
-                >
-                  Đăng ký tài khoản
-                </button>
-              </div>
-            )}
-
-            {/* View Switching */}
-            {user && currentTab === 'home' ? (
-              <div className="roundbox">
-                <div className="caption titled">
-                  <span>
-                    <span className="caption-arrow">→</span> Bảng điều khiển cá nhân
-                  </span>
-                </div>
-                <div className="roundbox-body welcome-user-card">
-                  <h3>Xin chào, <span className="user-handle specialist">{user.username}</span>!</h3>
-                  <div className="user-badge">
-                    Điểm Rating: {user.rating || 1500} ({user.rank || 'Chuyên viên'})
-                  </div>
-                  <p style={{ color: '#666', marginTop: '10px', fontSize: '13px' }}>
-                    Email tài khoản: <strong>{user.email}</strong>
-                  </p>
-                  <p style={{ color: '#888', marginTop: '6px', fontSize: '12px' }}>
-                    Bạn đã đăng nhập thành công vào LotusOJ. Hãy bắt đầu giải các bài toán tại mục <strong>KHO BÀI TẬP</strong> hoặc thử thách bản thân trong các <strong>KỲ THI</strong> sắp tới.
-                  </p>
-
-                  <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
-                    <button
-                      type="button"
-                      className="btn-cf btn-cf-primary"
-                      onClick={() => alert('Mục Kho bài tập đang được cập nhật.')}
-                    >
-                      Xem kho bài tập
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-cf"
-                      onClick={handleLogout}
-                    >
-                      Đăng xuất
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : currentTab === 'register' ? (
-              <RegisterForm
-                onSuccess={handleRegisterSuccess}
-                onSwitchToLogin={() => handleNavigate('login')}
+        {/* View Layout Switching */}
+        {currentTab === 'problemset' ? (
+          <div className="content-layout">
+            <div className="main-form-column">
+              <ProblemList
+                onSelectProblem={handleSelectProblem}
+                initialTag={activeTagFilter}
+                initialKeyword={searchKeyword}
               />
-            ) : (
-              <LoginForm
-                onSuccess={handleLoginSuccess}
-                onSwitchToRegister={() => handleNavigate('register')}
-              />
-            )}
+            </div>
+            <Sidebar />
           </div>
+        ) : currentTab === 'problem-detail' ? (
+          <ProblemDetail
+            slug={selectedSlug}
+            onBack={() => handleNavigate('problemset')}
+            onSelectTag={handleSelectTag}
+          />
+        ) : (
+          <div className="content-layout">
+            {/* Left Column: Form or Home Content */}
+            <div className="main-form-column">
+              {/* Tab switch bar when not logged in */}
+              {!user && (currentTab === 'login' || currentTab === 'register') && (
+                <div className="auth-switch-bar">
+                  <button
+                    type="button"
+                    className={`auth-tab-btn ${currentTab === 'login' ? 'active' : ''}`}
+                    onClick={() => handleNavigate('login')}
+                  >
+                    Đăng nhập
+                  </button>
+                  <button
+                    type="button"
+                    className={`auth-tab-btn ${currentTab === 'register' ? 'active' : ''}`}
+                    onClick={() => handleNavigate('register')}
+                  >
+                    Đăng ký tài khoản
+                  </button>
+                </div>
+              )}
 
-          {/* Right Column: Codeforces Info Sidebar */}
-          <Sidebar />
-        </div>
+              {/* View Switching */}
+              {user && currentTab === 'home' ? (
+                <div className="roundbox">
+                  <div className="caption titled">
+                    <span>
+                      <span className="caption-arrow">→</span> Bảng điều khiển cá nhân
+                    </span>
+                  </div>
+                  <div className="roundbox-body welcome-user-card">
+                    <h3>Xin chào, <span className="user-handle specialist">{user.username}</span>!</h3>
+                    <div className="user-badge">
+                      Điểm Rating: {user.rating || 1500} ({user.rank || 'Chuyên viên'})
+                    </div>
+                    <p style={{ color: '#666', marginTop: '10px', fontSize: '13px' }}>
+                      Email tài khoản: <strong>{user.email}</strong>
+                    </p>
+                    <p style={{ color: '#888', marginTop: '6px', fontSize: '12px' }}>
+                      Bạn đã đăng nhập thành công vào LotusOJ. Hãy bắt đầu giải các bài toán tại mục <strong>KHO BÀI TẬP</strong> hoặc thử thách bản thân trong các <strong>KỲ THI</strong> sắp tới.
+                    </p>
+
+                    <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                      <button
+                        type="button"
+                        className="btn-cf btn-cf-primary"
+                        onClick={() => handleNavigate('problemset')}
+                      >
+                        Xem kho bài tập
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-cf"
+                        onClick={handleLogout}
+                      >
+                        Đăng xuất
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : currentTab === 'register' ? (
+                <RegisterForm
+                  onSuccess={handleRegisterSuccess}
+                  onSwitchToLogin={() => handleNavigate('login')}
+                />
+              ) : (
+                <LoginForm
+                  onSuccess={handleLoginSuccess}
+                  onSwitchToRegister={() => handleNavigate('register')}
+                />
+              )}
+            </div>
+
+            {/* Right Column: Codeforces Info Sidebar */}
+            <Sidebar />
+          </div>
+        )}
       </main>
 
       {/* Codeforces Footer */}
@@ -166,3 +228,4 @@ function App() {
 }
 
 export default App
+

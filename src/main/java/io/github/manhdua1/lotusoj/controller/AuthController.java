@@ -1,11 +1,11 @@
 package io.github.manhdua1.lotusoj.controller;
 
-import io.github.manhdua1.lotusoj.dto.request.LoginRequest;
-import io.github.manhdua1.lotusoj.dto.request.RegisterRequest;
+import io.github.manhdua1.lotusoj.dto.request.auth.LoginRequest;
+import io.github.manhdua1.lotusoj.dto.request.auth.RegisterRequest;
 import io.github.manhdua1.lotusoj.dto.response.ApiResponse;
-import io.github.manhdua1.lotusoj.dto.response.LoginResult;
-import io.github.manhdua1.lotusoj.dto.response.UserResponse;
-import io.github.manhdua1.lotusoj.service.impl.AuthServiceImpl;
+import io.github.manhdua1.lotusoj.dto.response.auth.LoginResult;
+import io.github.manhdua1.lotusoj.dto.response.auth.UserResponse;
+import io.github.manhdua1.lotusoj.service.auth.impl.AuthServiceImpl;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;

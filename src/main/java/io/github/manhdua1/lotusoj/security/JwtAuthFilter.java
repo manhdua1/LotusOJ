@@ -1,7 +1,7 @@
 package io.github.manhdua1.lotusoj.security;
 
-import io.github.manhdua1.lotusoj.service.impl.JwtServiceImpl;
-import io.github.manhdua1.lotusoj.service.impl.TokenBlacklistServiceImpl;
+import io.github.manhdua1.lotusoj.service.auth.impl.JwtServiceImpl;
+import io.github.manhdua1.lotusoj.service.auth.impl.TokenBlacklistServiceImpl;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

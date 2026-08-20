@@ -1,11 +1,14 @@
-import React from 'react'
+import React, { useState } from 'react'
 import type { UserResponse } from '../types/auth'
 
+export type NavTab = 'login' | 'register' | 'home' | 'problemset' | 'problem-detail'
+
 interface HeaderProps {
-  currentTab: 'login' | 'register' | 'home' | string
-  onNavigate: (tab: 'login' | 'register' | 'home') => void
+  currentTab: NavTab | string
+  onNavigate: (tab: NavTab) => void
   user: UserResponse | null
   onLogout: () => void
+  onSearchProblem?: (keyword: string) => void
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -13,7 +16,20 @@ export const Header: React.FC<HeaderProps> = ({
   onNavigate,
   user,
   onLogout,
+  onSearchProblem,
 }) => {
+  const [headerSearch, setHeaderSearch] = useState('')
+
+  const handleSearchSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      if (onSearchProblem) {
+        onSearchProblem(headerSearch)
+      }
+      onNavigate('problemset')
+    }
+  }
+
   return (
     <header className="site-header">
       {/* Top Bar */}
@@ -122,10 +138,10 @@ export const Header: React.FC<HeaderProps> = ({
               PHÒNG LUYỆN
             </a>
           </li>
-          <li className="nav-item">
-            <a href="#problemset" onClick={(e) => e.preventDefault()}>
+          <li className={`nav-item ${currentTab === 'problemset' || currentTab === 'problem-detail' ? 'active' : ''}`}>
+            <button type="button" onClick={() => onNavigate('problemset')}>
               KHO BÀI TẬP
-            </a>
+            </button>
           </li>
           <li className="nav-item">
             <a href="#groups" onClick={(e) => e.preventDefault()}>
@@ -154,14 +170,13 @@ export const Header: React.FC<HeaderProps> = ({
             type="text"
             placeholder="Tìm kiếm bài tập..."
             aria-label="Tìm kiếm bài tập"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-              }
-            }}
+            value={headerSearch}
+            onChange={(e) => setHeaderSearch(e.target.value)}
+            onKeyDown={handleSearchSubmit}
           />
         </div>
       </nav>
     </header>
   )
 }
+
