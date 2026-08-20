@@ -3,6 +3,7 @@ package io.github.manhdua1.lotusoj.service.problem.impl;
 import io.github.manhdua1.lotusoj.dto.request.problem.CreateProblemRequest;
 import io.github.manhdua1.lotusoj.dto.request.problem.ProblemFilterRequest;
 import io.github.manhdua1.lotusoj.dto.request.problem.UpdateProblemRequest;
+import io.github.manhdua1.lotusoj.dto.response.PageResponse;
 import io.github.manhdua1.lotusoj.dto.response.problem.ProblemDetailResponse;
 import io.github.manhdua1.lotusoj.dto.response.problem.ProblemStatResponse;
 import io.github.manhdua1.lotusoj.dto.response.problem.ProblemSummaryResponse;
@@ -19,6 +20,7 @@ import io.github.manhdua1.lotusoj.repository.problem.ProblemRepository;
 import io.github.manhdua1.lotusoj.repository.problem.ProblemSpecification;
 import io.github.manhdua1.lotusoj.repository.problem.TagRepository;
 import io.github.manhdua1.lotusoj.repository.testCase.TestCaseRepository;
+import io.github.manhdua1.lotusoj.service.problem.ProblemRedisService;
 import io.github.manhdua1.lotusoj.service.problem.ProblemService;
 import io.github.manhdua1.lotusoj.util.SlugUtils;
 import lombok.AccessLevel;
@@ -48,6 +50,7 @@ public class ProblemServiceImpl implements ProblemService {
     UserRepository userRepository;
     ProblemMapper problemMapper;
     TestCaseMapper testCaseMapper;
+    ProblemRedisService problemRedisService;
 
     @Override
     @Transactional
@@ -68,6 +71,9 @@ public class ProblemServiceImpl implements ProblemService {
         Problem savedProblem = problemRepository.save(problem);
         log.info("Created problem: {} with slug: {}", savedProblem.getId(), savedProblem.getSlug());
 
+        problemRedisService.evictProblemListCache();
+        problemRedisService.evictTags();
+
         return buildProblemDetailResponse(savedProblem);
     }
 
@@ -77,6 +83,8 @@ public class ProblemServiceImpl implements ProblemService {
         Problem problem = getProblemEntity(id);
         User currentUser = getCurrentUser();
         validateManagePermission(problem, currentUser);
+
+        String oldSlug = problem.getSlug();
 
         if (request.getTitle() != null && !request.getTitle().isBlank()
                 && !request.getTitle().trim().equalsIgnoreCase(problem.getTitle())) {
@@ -94,35 +102,83 @@ public class ProblemServiceImpl implements ProblemService {
         Problem updatedProblem = problemRepository.save(problem);
         log.info("Updated problem: {}", updatedProblem.getId());
 
+        // Invalidate cache
+        problemRedisService.evictProblemDetail(updatedProblem.getId(), updatedProblem.getSlug());
+        if (!oldSlug.equals(updatedProblem.getSlug())) {
+            problemRedisService.evictProblemDetail(null, oldSlug);
+        }
+        problemRedisService.evictProblemListCache();
+
         return buildProblemDetailResponse(updatedProblem);
     }
 
     @Override
     @Transactional(readOnly = true)
     public ProblemDetailResponse getProblemById(UUID id) {
-        Problem problem = getProblemEntity(id);
         Optional<User> currentUserOpt = getCurrentUserOptional();
+
+        // 1. Try reading from Redis cache first
+        Optional<ProblemDetailResponse> cached = problemRedisService.getProblemDetailById(id);
+        if (cached.isPresent()) {
+            ProblemDetailResponse detail = cached.get();
+            if (canViewProblemStatus(detail.getStatus(), currentUserOpt)) {
+                // Enrich real-time acceptance rate from Redis stats counter
+                problemRedisService.getProblemStats(id).ifPresent(stats -> detail.setAcceptanceRate(stats.getAcceptanceRate()));
+                return detail;
+            }
+        }
+
+        // 2. Cache miss -> query DB
+        Problem problem = getProblemEntity(id);
 
         if (!canViewProblem(problem, currentUserOpt)) {
             throw new AppException(ErrorCode.PROBLEM_NOT_FOUND);
         }
 
-        return buildProblemDetailResponse(problem);
+        ProblemDetailResponse response = buildProblemDetailResponse(problem);
+
+        // 3. Cache published problem detail and stats
+        if (problem.getStatus() == Problem.ProblemStatus.PUBLISHED) {
+            problemRedisService.saveProblemDetail(response);
+            problemRedisService.saveProblemStats(problem.getId(), problem.getTotalSubmissions(), problem.getTotalAccepted(), response.getAcceptanceRate());
+        }
+
+        return response;
     }
 
     @Override
     @Transactional(readOnly = true)
     public ProblemDetailResponse getProblemBySlug(String slug) {
+        Optional<User> currentUserOpt = getCurrentUserOptional();
+
+        // 1. Try reading from Redis cache first
+        Optional<ProblemDetailResponse> cached = problemRedisService.getProblemDetailBySlug(slug);
+        if (cached.isPresent()) {
+            ProblemDetailResponse detail = cached.get();
+            if (canViewProblemStatus(detail.getStatus(), currentUserOpt)) {
+                // Enrich real-time acceptance rate from Redis stats counter
+                problemRedisService.getProblemStats(detail.getId()).ifPresent(stats -> detail.setAcceptanceRate(stats.getAcceptanceRate()));
+                return detail;
+            }
+        }
+
+        // 2. Cache miss -> query DB
         Problem problem = problemRepository.findBySlugAndIsDeletedFalse(slug)
                 .orElseThrow(() -> new AppException(ErrorCode.PROBLEM_NOT_FOUND));
-
-        Optional<User> currentUserOpt = getCurrentUserOptional();
 
         if (!canViewProblem(problem, currentUserOpt)) {
             throw new AppException(ErrorCode.PROBLEM_NOT_FOUND);
         }
 
-        return buildProblemDetailResponse(problem);
+        ProblemDetailResponse response = buildProblemDetailResponse(problem);
+
+        // 3. Cache published problem detail and stats
+        if (problem.getStatus() == Problem.ProblemStatus.PUBLISHED) {
+            problemRedisService.saveProblemDetail(response);
+            problemRedisService.saveProblemStats(problem.getId(), problem.getTotalSubmissions(), problem.getTotalAccepted(), response.getAcceptanceRate());
+        }
+
+        return response;
     }
 
     @Override
@@ -143,22 +199,39 @@ public class ProblemServiceImpl implements ProblemService {
             effectiveStatus = filterRequest.getStatus();
         }
 
+        boolean isAuthenticated = currentUserOpt.isPresent();
+        boolean isPublicQuery = !canViewAllStatuses && (filterRequest == null || filterRequest.getSolved() == null);
+        String cacheKey = isPublicQuery ? problemRedisService.generateListCacheKey(filterRequest, pageable) : null;
+
+        // Try reading public published problem list from Redis
+        if (isPublicQuery) {
+            Optional<PageResponse<ProblemSummaryResponse>> cachedList = problemRedisService.getProblemList(cacheKey);
+            if (cachedList.isPresent()) {
+                PageResponse<ProblemSummaryResponse> pr = cachedList.get();
+                List<ProblemSummaryResponse> content = pr.getContent() != null ? pr.getContent() : Collections.emptyList();
+                return new org.springframework.data.domain.PageImpl<>(content, pageable, pr.getTotalElements());
+            }
+        }
+
         Specification<Problem> specification = ProblemSpecification.filter(filterRequest, effectiveStatus);
         Page<Problem> problemPage = problemRepository.findAll(specification, pageable);
 
-        boolean isAuthenticated = currentUserOpt.isPresent();
-
-        return problemPage.map(problem -> {
+        Page<ProblemSummaryResponse> summaryPage = problemPage.map(problem -> {
             ProblemSummaryResponse summary = problemMapper.toProblemSummaryResponse(problem);
             if (isAuthenticated) {
-                // If user is authenticated, solved state can be calculated/queried
-                // For now, default to false or handle if solved filter is specified
                 summary.setSolvedByCurrentUser(false);
             } else {
                 summary.setSolvedByCurrentUser(null);
             }
             return summary;
         });
+
+        // Save public query to Redis cache
+        if (isPublicQuery && cacheKey != null) {
+            problemRedisService.saveProblemList(cacheKey, PageResponse.from(summaryPage));
+        }
+
+        return summaryPage;
     }
 
     @Override
@@ -173,6 +246,9 @@ public class ProblemServiceImpl implements ProblemService {
         problemRepository.save(problem);
 
         log.info("Soft deleted problem: {}", id);
+
+        problemRedisService.evictProblemDetail(problem.getId(), problem.getSlug());
+        problemRedisService.evictProblemListCache();
     }
 
     @Override
@@ -187,23 +263,38 @@ public class ProblemServiceImpl implements ProblemService {
         Problem savedProblem = problemRepository.save(problem);
 
         log.info("Updated problem {} status to {}", id, status);
+
+        problemRedisService.evictProblemDetail(savedProblem.getId(), savedProblem.getSlug());
+        problemRedisService.evictProblemListCache();
+
         return buildProblemDetailResponse(savedProblem);
     }
 
     @Override
     @Transactional(readOnly = true)
     public ProblemStatResponse getProblemStats(UUID id) {
-        Problem problem = getProblemEntity(id);
+        // 1. Try reading from Redis Hash stats
+        Optional<ProblemStatResponse> cachedStats = problemRedisService.getProblemStats(id);
+        if (cachedStats.isPresent()) {
+            return cachedStats.get();
+        }
 
+        // 2. Cache miss -> query DB entity
+        Problem problem = getProblemEntity(id);
         Double acceptanceRate = problemMapper.calculateAcceptanceRate(problem);
 
-        return ProblemStatResponse.builder()
+        ProblemStatResponse response = ProblemStatResponse.builder()
                 .problemId(problem.getId())
                 .totalSubmissions(problem.getTotalSubmissions())
                 .totalAccepted(problem.getTotalAccepted())
                 .acceptanceRate(acceptanceRate)
                 .submissionsByLanguage(new HashMap<>())
                 .build();
+
+        // 3. Save to Redis
+        problemRedisService.saveProblemStats(problem.getId(), problem.getTotalSubmissions(), problem.getTotalAccepted(), acceptanceRate);
+
+        return response;
     }
 
     private Problem getProblemEntity(UUID id) {
@@ -269,6 +360,19 @@ public class ProblemServiceImpl implements ProblemService {
         if (!isAdmin && !isOwner) {
             throw new AppException(ErrorCode.UNAUTHORIZED_OPERATION);
         }
+    }
+
+    private boolean canViewProblemStatus(Problem.ProblemStatus status, Optional<User> currentUserOpt) {
+        if (status == Problem.ProblemStatus.PUBLISHED) {
+            return true;
+        }
+
+        if (currentUserOpt.isEmpty()) {
+            return false;
+        }
+
+        User user = currentUserOpt.get();
+        return user.getRole() == User.Role.ADMIN || user.getRole() == User.Role.PROBLEM_SETTER;
     }
 
     private boolean canViewProblem(Problem problem, Optional<User> currentUserOpt) {

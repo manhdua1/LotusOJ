@@ -19,6 +19,7 @@ import io.github.manhdua1.lotusoj.repository.auth.UserRepository;
 import io.github.manhdua1.lotusoj.repository.problem.ProblemRepository;
 import io.github.manhdua1.lotusoj.repository.problem.TagRepository;
 import io.github.manhdua1.lotusoj.repository.testCase.TestCaseRepository;
+import io.github.manhdua1.lotusoj.service.problem.ProblemRedisService;
 import io.github.manhdua1.lotusoj.service.problem.impl.ProblemServiceImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -65,6 +66,9 @@ class ProblemServiceTest {
 
     @Mock
     private TestCaseMapper testCaseMapper;
+
+    @Mock
+    private ProblemRedisService problemRedisService;
 
     @InjectMocks
     private ProblemServiceImpl problemService;
