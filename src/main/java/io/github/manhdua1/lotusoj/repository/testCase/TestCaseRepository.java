@@ -9,4 +9,5 @@ import java.util.UUID;
 public interface TestCaseRepository extends JpaRepository<TestCase, UUID> {
     List<TestCase> findByProblemIdAndIsSampleTrueOrderByOrderIndexAsc(UUID problemId);
     List<TestCase> findByProblemIdOrderByOrderIndexAsc(UUID problemId);
+    long countByProblemId(UUID problemId);
 }
