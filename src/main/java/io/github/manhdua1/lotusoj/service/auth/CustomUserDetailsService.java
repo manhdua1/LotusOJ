@@ -4,6 +4,7 @@ import io.github.manhdua1.lotusoj.entity.auth.User;
 import io.github.manhdua1.lotusoj.exception.AppException;
 import io.github.manhdua1.lotusoj.exception.ErrorCode;
 import io.github.manhdua1.lotusoj.repository.auth.UserRepository;
+import io.github.manhdua1.lotusoj.security.CustomUserDetails;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -23,11 +24,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         User user = userRepository.findByEmail(username)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
-        return org.springframework.security.core.userdetails.User.builder()
-                .username(user.getEmail())
-                .password(user.getPasswordHash())
-                .authorities("ROLE_" + user.getRole().name())
-                .disabled(user.getStatus() == User.Status.BANNED)
-                .build();
+        return new CustomUserDetails(user);
     }
 }
+
