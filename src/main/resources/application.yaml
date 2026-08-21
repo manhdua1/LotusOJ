@@ -18,6 +18,17 @@ spring:
       ddl-auto: update
     show-sql: true
 
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    listener:
+      simple:
+        acknowledge-mode: manual
+        concurrency: 3
+        max-concurrency: 5
+
 jwt:
   signer-key: "xst61ez92rNSYQ0lcF8cOFI1R9MPpWf02fExM5YPvuc9NE0R6m1LntdmdiAx2ha4TaPfjaO9kgzKXKbdNHDExk"
   access-token-duration: 900
