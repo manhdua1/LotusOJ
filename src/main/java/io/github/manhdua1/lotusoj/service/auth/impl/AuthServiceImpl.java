@@ -83,4 +83,11 @@ public class AuthServiceImpl implements AuthService {
 
         refreshTokenService.revoke(refreshTokenRaw);
     }
+
+    @Override
+    public UserResponse getProfile(java.util.UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        return userMapper.toUserResponse(user);
+    }
 }

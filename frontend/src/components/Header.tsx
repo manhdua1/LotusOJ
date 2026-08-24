@@ -1,7 +1,7 @@
 import React from 'react'
 import type { UserResponse } from '../types/auth'
 
-export type NavTab = 'login' | 'register' | 'home' | 'problemset' | 'problem-detail' | 'admin'
+export type NavTab = 'login' | 'register' | 'home' | 'problemset' | 'problem-detail' | 'admin' | 'profile'
 
 interface HeaderProps {
   currentTab: NavTab | string
@@ -55,7 +55,29 @@ export const Header: React.FC<HeaderProps> = ({
             {user ? (
               <div className="header-user-info">
                 <span>Xin chào,</span>
-                <span className="user-handle specialist">{user.username}</span>
+                <button
+                  type="button"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    cursor: 'pointer',
+                    font: 'inherit',
+                  }}
+                  onClick={() => onNavigate('profile')}
+                  title="Xem hồ sơ cá nhân"
+                >
+                  <strong className="user-handle specialist">{user.username}</strong>
+                </button>
+                <span>|</span>
+                <button
+                  type="button"
+                  className="logout-btn"
+                  onClick={() => onNavigate('profile')}
+                  style={{ color: '#1755a6', fontWeight: currentTab === 'profile' ? 'bold' : 'normal' }}
+                >
+                  Hồ sơ
+                </button>
                 <span>|</span>
                 <button
                   type="button"

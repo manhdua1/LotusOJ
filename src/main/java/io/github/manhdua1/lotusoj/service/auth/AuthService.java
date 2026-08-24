@@ -14,4 +14,6 @@ public interface AuthService {
     String refresh(String refreshTokenRaw);
 
     void logout(String accessToken, String refreshTokenRaw);
+
+    UserResponse getProfile(java.util.UUID userId);
 }

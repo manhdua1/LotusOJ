@@ -6,6 +6,7 @@ import { Footer } from './components/Footer'
 import { ProblemList } from './components/ProblemList'
 import { ProblemDetail } from './components/ProblemDetail'
 import { AdminPanel } from './components/AdminPanel'
+import { UserProfile } from './components/UserProfile'
 import { authService } from './services/authService'
 import type { UserResponse } from './types/auth'
 import './App.css'
@@ -32,6 +33,8 @@ function App() {
         setCurrentTab('login')
       } else if (hash === 'admin' || hash === 'quan-tri') {
         setCurrentTab('admin')
+      } else if (hash === 'profile' || hash === 'ho-so' || hash === 'user') {
+        setCurrentTab('profile')
       } else if (hash === 'home' || hash === 'trang-chu') {
         setCurrentTab('problemset')
       } else if (hash.startsWith('problem/')) {
@@ -186,43 +189,12 @@ function App() {
             )}
 
             {/* View Switching */}
-            {user && currentTab === 'home' ? (
-              <div className="roundbox">
-                <div className="caption titled">
-                  <span>
-                    <span className="caption-arrow">→</span> Bảng điều khiển cá nhân
-                  </span>
-                </div>
-                <div className="roundbox-body welcome-user-card">
-                  <h3>Xin chào, <span className="user-handle specialist">{user.username}</span>!</h3>
-                  <div className="user-badge">
-                    Điểm Rating: {user.rating || 1500} ({user.rank || 'Chuyên viên'})
-                  </div>
-                  <p style={{ color: '#666', marginTop: '10px', fontSize: '13px' }}>
-                    Email tài khoản: <strong>{user.email}</strong>
-                  </p>
-                  <p style={{ color: '#888', marginTop: '6px', fontSize: '12px' }}>
-                    Bạn đã đăng nhập thành công vào LotusOJ. Hãy bắt đầu giải các bài toán tại mục <strong>KHO BÀI TẬP</strong> hoặc thử thách bản thân trong các <strong>KỲ THI</strong> sắp tới.
-                  </p>
-
-                  <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
-                    <button
-                      type="button"
-                      className="btn-cf btn-cf-primary"
-                      onClick={() => handleNavigate('problemset')}
-                    >
-                      Xem kho bài tập
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-cf"
-                      onClick={handleLogout}
-                    >
-                      Đăng xuất
-                    </button>
-                  </div>
-                </div>
-              </div>
+            {currentTab === 'profile' || (user && currentTab === 'home') ? (
+              <UserProfile
+                initialUser={user}
+                onNavigate={handleNavigate}
+                onLogout={handleLogout}
+              />
             ) : currentTab === 'register' ? (
               <RegisterForm
                 onSuccess={handleRegisterSuccess}

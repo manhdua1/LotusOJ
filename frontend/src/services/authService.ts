@@ -203,8 +203,6 @@ export const authService = {
           username,
           email: request.email,
           role,
-          rating: role === 'ADMIN' ? 2400 : 1500,
-          rank: role === 'ADMIN' ? 'Quản trị viên' : 'Chuyên viên',
         })
       }
 
@@ -261,6 +259,24 @@ export const authService = {
       this.removeToken()
       this.removeUser()
     }
+  },
+
+  async getProfile(): Promise<UserResponse> {
+    const response = await this.fetchWithAuth('/api/auth/me', {
+      method: 'GET',
+    })
+
+    if (!response.ok) {
+      throw new Error(`Lỗi tải thông tin tài khoản (HTTP ${response.status})`)
+    }
+
+    const data: ApiResponse<UserResponse> = await response.json()
+    if ((data.code !== 1000 && data.code !== 200) || !data.result) {
+      throw new Error(data.message || 'Không thể lấy thông tin tài khoản')
+    }
+
+    this.setUser(data.result)
+    return data.result
   },
 
   getErrorMessage(rawMessage: string): string {

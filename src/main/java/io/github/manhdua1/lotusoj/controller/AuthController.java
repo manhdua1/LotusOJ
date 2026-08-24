@@ -5,6 +5,8 @@ import io.github.manhdua1.lotusoj.dto.request.auth.RegisterRequest;
 import io.github.manhdua1.lotusoj.dto.response.ApiResponse;
 import io.github.manhdua1.lotusoj.dto.response.auth.LoginResult;
 import io.github.manhdua1.lotusoj.dto.response.auth.UserResponse;
+import io.github.manhdua1.lotusoj.exception.AppException;
+import io.github.manhdua1.lotusoj.security.CustomUserDetails;
 import io.github.manhdua1.lotusoj.service.auth.impl.AuthServiceImpl;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -14,6 +16,7 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -30,6 +33,14 @@ public class AuthController {
     public ApiResponse<UserResponse> register(@RequestBody @Valid RegisterRequest request) {
 
         return ApiResponse.success(authService.register(request));
+    }
+
+    @GetMapping("/me")
+    public ApiResponse<UserResponse> getProfile(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        if (userDetails == null) {
+            throw new AppException(io.github.manhdua1.lotusoj.exception.ErrorCode.UNAUTHENTICATED);
+        }
+        return ApiResponse.success(authService.getProfile(userDetails.getUser().getId()));
     }
 
     @PostMapping("/login")
