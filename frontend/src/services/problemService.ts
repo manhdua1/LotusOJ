@@ -1,25 +1,17 @@
 import type {
   ApiResponse,
+  CreateProblemRequest,
   PageResponse,
   ProblemDetailResponse,
   ProblemFilterRequest,
   ProblemStatResponse,
+  ProblemStatus,
   ProblemSummaryResponse,
+  UpdateProblemRequest,
 } from '../types/problem'
 import { authService } from './authService'
 
 export const problemService = {
-  getAuthHeaders(): HeadersInit {
-    const token = authService.getToken()
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    }
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`
-    }
-    return headers
-  },
-
   async getProblems(
     filter?: ProblemFilterRequest,
     page: number = 0,
@@ -47,9 +39,8 @@ export const problemService = {
       params.set('solved', filter.solved ? 'true' : 'false')
     }
 
-    const response = await fetch(`/api/problems?${params.toString()}`, {
+    const response = await authService.fetchWithAuth(`/api/problems?${params.toString()}`, {
       method: 'GET',
-      headers: this.getAuthHeaders(),
     })
 
     if (!response.ok) {
@@ -74,9 +65,8 @@ export const problemService = {
   },
 
   async getProblemBySlug(slug: string): Promise<ProblemDetailResponse> {
-    const response = await fetch(`/api/problems/slug/${encodeURIComponent(slug)}`, {
+    const response = await authService.fetchWithAuth(`/api/problems/slug/${encodeURIComponent(slug)}`, {
       method: 'GET',
-      headers: this.getAuthHeaders(),
     })
 
     if (!response.ok) {
@@ -101,9 +91,8 @@ export const problemService = {
   },
 
   async getProblemById(id: string): Promise<ProblemDetailResponse> {
-    const response = await fetch(`/api/problems/${id}`, {
+    const response = await authService.fetchWithAuth(`/api/problems/${id}`, {
       method: 'GET',
-      headers: this.getAuthHeaders(),
     })
 
     if (!response.ok) {
@@ -128,9 +117,8 @@ export const problemService = {
   },
 
   async getProblemStats(id: string): Promise<ProblemStatResponse> {
-    const response = await fetch(`/api/problems/${id}/stats`, {
+    const response = await authService.fetchWithAuth(`/api/problems/${id}/stats`, {
       method: 'GET',
-      headers: this.getAuthHeaders(),
     })
 
     if (!response.ok) {
@@ -149,6 +137,105 @@ export const problemService = {
     const data: ApiResponse<ProblemStatResponse> = await response.json()
     if ((data.code !== 1000 && data.code !== 200) || !data.result) {
       throw new Error(data.message || 'Không thể lấy thống kê bài tập')
+    }
+
+    return data.result
+  },
+
+  async createProblem(request: CreateProblemRequest): Promise<ProblemDetailResponse> {
+    const response = await authService.fetchWithAuth('/api/problems', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    })
+
+    if (!response.ok) {
+      let errorMessage = `Không thể tạo bài tập (HTTP ${response.status})`
+      try {
+        const errJson: ApiResponse<unknown> = await response.json()
+        if (errJson.message) {
+          errorMessage = errJson.message
+        }
+      } catch {
+        // fallback
+      }
+      throw new Error(errorMessage)
+    }
+
+    const data: ApiResponse<ProblemDetailResponse> = await response.json()
+    if ((data.code !== 1000 && data.code !== 200 && data.code !== 201) || !data.result) {
+      throw new Error(data.message || 'Không thể tạo bài tập')
+    }
+
+    return data.result
+  },
+
+  async updateProblem(id: string, request: UpdateProblemRequest): Promise<ProblemDetailResponse> {
+    const response = await authService.fetchWithAuth(`/api/problems/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(request),
+    })
+
+    if (!response.ok) {
+      let errorMessage = `Không thể cập nhật bài tập (HTTP ${response.status})`
+      try {
+        const errJson: ApiResponse<unknown> = await response.json()
+        if (errJson.message) {
+          errorMessage = errJson.message
+        }
+      } catch {
+        // fallback
+      }
+      throw new Error(errorMessage)
+    }
+
+    const data: ApiResponse<ProblemDetailResponse> = await response.json()
+    if ((data.code !== 1000 && data.code !== 200) || !data.result) {
+      throw new Error(data.message || 'Không thể cập nhật bài tập')
+    }
+
+    return data.result
+  },
+
+  async deleteProblem(id: string): Promise<void> {
+    const response = await authService.fetchWithAuth(`/api/problems/${id}`, {
+      method: 'DELETE',
+    })
+
+    if (!response.ok) {
+      let errorMessage = `Không thể xóa bài tập (HTTP ${response.status})`
+      try {
+        const errJson: ApiResponse<unknown> = await response.json()
+        if (errJson.message) {
+          errorMessage = errJson.message
+        }
+      } catch {
+        // fallback
+      }
+      throw new Error(errorMessage)
+    }
+  },
+
+  async updateProblemStatus(id: string, status: ProblemStatus): Promise<ProblemDetailResponse> {
+    const response = await authService.fetchWithAuth(`/api/problems/${id}/status?status=${encodeURIComponent(status)}`, {
+      method: 'PATCH',
+    })
+
+    if (!response.ok) {
+      let errorMessage = `Không thể đổi trạng thái bài tập (HTTP ${response.status})`
+      try {
+        const errJson: ApiResponse<unknown> = await response.json()
+        if (errJson.message) {
+          errorMessage = errJson.message
+        }
+      } catch {
+        // fallback
+      }
+      throw new Error(errorMessage)
+    }
+
+    const data: ApiResponse<ProblemDetailResponse> = await response.json()
+    if ((data.code !== 1000 && data.code !== 200) || !data.result) {
+      throw new Error(data.message || 'Không thể đổi trạng thái bài tập')
     }
 
     return data.result

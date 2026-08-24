@@ -58,6 +58,32 @@ export interface ProblemFilterRequest {
   keyword?: string
 }
 
+export interface CreateProblemRequest {
+  title: string
+  statement: string
+  inputFormat?: string
+  outputFormat?: string
+  constraints?: string
+  explanationNote?: string
+  timeLimitMs: number
+  memoryLimitKb: number
+  difficulty: ProblemDifficulty
+  tagNames?: string[]
+}
+
+export interface UpdateProblemRequest {
+  title?: string
+  statement?: string
+  inputFormat?: string
+  outputFormat?: string
+  constraints?: string
+  explanationNote?: string
+  timeLimitMs?: number
+  memoryLimitKb?: number
+  difficulty?: ProblemDifficulty
+  tagNames?: string[]
+}
+
 export interface PageResponse<T> {
   page: number
   size: number

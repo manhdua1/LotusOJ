@@ -161,10 +161,10 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
 
   const getVerdictBadge = (verdict: Verdict | null, status: string) => {
     if (status === 'PENDING') {
-      return <span style={{ color: '#888', fontWeight: 'bold' }}>⏳ Đang xếp hàng chờ chấm...</span>
+      return <span style={{ color: '#888', fontWeight: 'bold' }}>Đang xếp hàng chờ chấm...</span>
     }
     if (status === 'JUDGING') {
-      return <span style={{ color: '#0066cc', fontWeight: 'bold' }}>⚡ Đang chấm bài...</span>
+      return <span style={{ color: '#0066cc', fontWeight: 'bold' }}>Đang chấm bài...</span>
     }
 
     if (!verdict) {
@@ -173,21 +173,21 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
 
     switch (verdict) {
       case 'ACCEPTED':
-        return <span style={{ color: '#0a8020', fontWeight: 'bold', fontSize: '13px' }}>✓ Chấp nhận (Accepted)</span>
+        return <span style={{ color: '#0a8020', fontWeight: 'bold', fontSize: '13px' }}>Chấp nhận (Accepted)</span>
       case 'WRONG_ANSWER':
-        return <span style={{ color: '#d32f2f', fontWeight: 'bold', fontSize: '13px' }}>✗ Sai kết quả (Wrong Answer)</span>
+        return <span style={{ color: '#d32f2f', fontWeight: 'bold', fontSize: '13px' }}>Sai kết quả (Wrong Answer)</span>
       case 'TIME_LIMIT_EXCEEDED':
-        return <span style={{ color: '#ed6c02', fontWeight: 'bold', fontSize: '13px' }}>⏱ Quá thời gian (Time Limit Exceeded)</span>
+        return <span style={{ color: '#ed6c02', fontWeight: 'bold', fontSize: '13px' }}>Quá thời gian (Time Limit Exceeded)</span>
       case 'MEMORY_LIMIT_EXCEEDED':
-        return <span style={{ color: '#ed6c02', fontWeight: 'bold', fontSize: '13px' }}>💾 Quá bộ nhớ (Memory Limit Exceeded)</span>
+        return <span style={{ color: '#ed6c02', fontWeight: 'bold', fontSize: '13px' }}>Quá bộ nhớ (Memory Limit Exceeded)</span>
       case 'COMPILATION_ERROR':
-        return <span style={{ color: '#9c27b0', fontWeight: 'bold', fontSize: '13px' }}>⚠️ Lỗi biên dịch (Compilation Error)</span>
+        return <span style={{ color: '#9c27b0', fontWeight: 'bold', fontSize: '13px' }}>Lỗi biên dịch (Compilation Error)</span>
       case 'RUNTIME_ERROR':
-        return <span style={{ color: '#d32f2f', fontWeight: 'bold', fontSize: '13px' }}>💥 Lỗi thực thi (Runtime Error)</span>
+        return <span style={{ color: '#d32f2f', fontWeight: 'bold', fontSize: '13px' }}>Lỗi thực thi (Runtime Error)</span>
       case 'OUTPUT_LIMIT_EXCEEDED':
-        return <span style={{ color: '#ed6c02', fontWeight: 'bold', fontSize: '13px' }}>📄 Quá dung lượng đầu ra (Output Limit)</span>
+        return <span style={{ color: '#ed6c02', fontWeight: 'bold', fontSize: '13px' }}>Quá dung lượng đầu ra (Output Limit)</span>
       case 'INTERNAL_ERROR':
-        return <span style={{ color: '#d32f2f', fontWeight: 'bold', fontSize: '13px' }}>❌ Lỗi hệ thống máy chấm (Internal Error)</span>
+        return <span style={{ color: '#d32f2f', fontWeight: 'bold', fontSize: '13px' }}>Lỗi hệ thống máy chấm (Internal Error)</span>
       default:
         return <span style={{ fontWeight: 'bold' }}>{verdict}</span>
     }
@@ -344,7 +344,7 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
                             onClick={() => handleCopy(tc.input, `in-${idx}`)}
                             title="Sao chép đầu vào"
                           >
-                            {copiedId === `in-${idx}` ? '✓ Đã chép' : 'Sao chép'}
+                            {copiedId === `in-${idx}` ? 'Đã chép' : 'Sao chép'}
                           </button>
                         </div>
                         <pre className="sample-code">{tc.input}</pre>
@@ -360,7 +360,7 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
                             onClick={() => handleCopy(tc.expectedOutput, `out-${idx}`)}
                             title="Sao chép đầu ra"
                           >
-                            {copiedId === `out-${idx}` ? '✓ Đã chép' : 'Sao chép'}
+                            {copiedId === `out-${idx}` ? 'Đã chép' : 'Sao chép'}
                           </button>
                         </div>
                         <pre className="sample-code">{tc.expectedOutput}</pre>

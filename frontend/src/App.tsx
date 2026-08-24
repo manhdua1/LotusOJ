@@ -6,6 +6,7 @@ import { Sidebar } from './components/Sidebar'
 import { Footer } from './components/Footer'
 import { ProblemList } from './components/ProblemList'
 import { ProblemDetail } from './components/ProblemDetail'
+import { AdminPanel } from './components/AdminPanel'
 import { authService } from './services/authService'
 import type { UserResponse } from './types/auth'
 import './App.css'
@@ -31,8 +32,10 @@ function App() {
         setCurrentTab('register')
       } else if (hash === 'login' || hash === 'enter' || hash === 'dang-nhap') {
         setCurrentTab('login')
+      } else if (hash === 'admin' || hash === 'quan-tri') {
+        setCurrentTab('admin')
       } else if (hash === 'home' || hash === 'trang-chu') {
-        setCurrentTab('home')
+        setCurrentTab('problemset')
       } else if (hash.startsWith('problem/')) {
         const slug = hash.replace('problem/', '')
         if (slug) {
@@ -43,13 +46,24 @@ function App() {
         setCurrentTab('problemset')
       } else if (hash === '') {
         // Default landing page
-        setCurrentTab(savedUser ? 'home' : 'problemset')
+        setCurrentTab('problemset')
       }
+    }
+
+    const handleAuthExpired = () => {
+      setUser(null)
+      setActionNotice('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.')
+      setCurrentTab('login')
+      window.location.hash = 'login'
     }
 
     handleHashChange()
     window.addEventListener('hashchange', handleHashChange)
-    return () => window.removeEventListener('hashchange', handleHashChange)
+    window.addEventListener('lotusoj_auth_expired', handleAuthExpired)
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange)
+      window.removeEventListener('lotusoj_auth_expired', handleAuthExpired)
+    }
   }, [])
 
   const handleNavigate = (tab: NavTab) => {
@@ -85,8 +99,8 @@ function App() {
   const handleLoginSuccess = (loggedInUser: UserResponse, _token: string) => {
     setUser(loggedInUser)
     setActionNotice(`Chào mừng ${loggedInUser.username} đã quay trở lại hệ thống LotusOJ!`)
-    setCurrentTab('home')
-    window.location.hash = 'home'
+    setCurrentTab('problemset')
+    window.location.hash = 'problemset'
   }
 
   const handleRegisterSuccess = (registeredUser: UserResponse) => {
@@ -140,6 +154,36 @@ function App() {
             onBack={() => handleNavigate('problemset')}
             onSelectTag={handleSelectTag}
           />
+        ) : currentTab === 'admin' ? (
+          <div className="content-layout">
+            <div className="main-form-column">
+              {user?.role === 'ADMIN' || user?.role === 'PROBLEM_SETTER' ? (
+                <AdminPanel onViewProblem={handleSelectProblem} />
+              ) : (
+                <div className="roundbox">
+                  <div className="caption titled">
+                    <span>
+                      <span className="caption-arrow">→</span> Quyền truy cập bị từ chối
+                    </span>
+                  </div>
+                  <div className="roundbox-body" style={{ textAlign: 'center', padding: '30px' }}>
+                    <h3 style={{ color: '#d32f2f', marginBottom: '8px' }}>Bạn không có quyền truy cập khu vực Quản trị</h3>
+                    <p style={{ color: '#666', marginBottom: '16px' }}>
+                      Khu vực này chỉ dành cho tài khoản có quyền <strong>Quản trị viên (ADMIN)</strong> hoặc <strong>Người tạo đề (PROBLEM_SETTER)</strong>.
+                    </p>
+                    <button
+                      type="button"
+                      className="btn-cf btn-cf-primary"
+                      onClick={() => handleNavigate('login')}
+                    >
+                      Đăng nhập tài khoản Quản trị
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+            <Sidebar />
+          </div>
         ) : (
           <div className="content-layout">
             {/* Left Column: Form or Home Content */}

@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import type { UserResponse } from '../types/auth'
 
-export type NavTab = 'login' | 'register' | 'home' | 'problemset' | 'problem-detail'
+export type NavTab = 'login' | 'register' | 'home' | 'problemset' | 'problem-detail' | 'admin'
 
 interface HeaderProps {
   currentTab: NavTab | string
@@ -35,13 +35,13 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Top Bar */}
       <div className="header-top">
         <a
-          href="#home"
+          href="#problemset"
           className="logo-area"
           onClick={(e) => {
             e.preventDefault()
-            onNavigate('home')
+            onNavigate('problemset')
           }}
-          title="Trang chủ LotusOJ"
+          title="LotusOJ Problemset"
         >
           <div className="logo-icon-wrap" aria-hidden="true">
             <div className="cf-bar cf-bar-1"></div>
@@ -118,51 +118,26 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Main Navigation Bar */}
       <nav className="main-nav" aria-label="Điều hướng chính">
         <ul className="nav-links">
-          <li className={`nav-item ${currentTab === 'home' ? 'active' : ''}`}>
-            <button type="button" onClick={() => onNavigate('home')}>
-              TRANG CHỦ
-            </button>
-          </li>
-          <li className="nav-item">
-            <a href="#top" onClick={(e) => e.preventDefault()}>
-              BẢNG XẾP HẠNG
-            </a>
-          </li>
-          <li className="nav-item">
-            <a href="#contests" onClick={(e) => e.preventDefault()}>
-              KỲ THI
-            </a>
-          </li>
-          <li className="nav-item">
-            <a href="#gym" onClick={(e) => e.preventDefault()}>
-              PHÒNG LUYỆN
-            </a>
-          </li>
           <li className={`nav-item ${currentTab === 'problemset' || currentTab === 'problem-detail' ? 'active' : ''}`}>
             <button type="button" onClick={() => onNavigate('problemset')}>
               KHO BÀI TẬP
             </button>
           </li>
           <li className="nav-item">
-            <a href="#groups" onClick={(e) => e.preventDefault()}>
-              NHÓM
-            </a>
+            <button type="button" onClick={(e) => e.preventDefault()}>
+              KỲ THI
+            </button>
           </li>
-          <li className="nav-item">
-            <a href="#rating" onClick={(e) => e.preventDefault()}>
-              ĐIỂM RATING
-            </a>
-          </li>
-          <li className="nav-item">
-            <a href="#edu" onClick={(e) => e.preventDefault()}>
-              HỌC TẬP
-            </a>
-          </li>
-          <li className="nav-item">
-            <a href="#help" onClick={(e) => e.preventDefault()}>
-              TRỢ GIÚP
-            </a>
-          </li>
+          {(user?.role === 'ADMIN' || user?.role === 'PROBLEM_SETTER') && (
+            <li className={`nav-item ${currentTab === 'admin' ? 'active' : ''}`}>
+              <button
+                type="button"
+                onClick={() => onNavigate('admin')}
+              >
+                QUẢN TRỊ
+              </button>
+            </li>
+          )}
         </ul>
 
         <div className="nav-search">

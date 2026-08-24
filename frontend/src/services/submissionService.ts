@@ -3,21 +3,9 @@ import type { SubmissionRequest, SubmissionResponse } from '../types/submission'
 import { authService } from './authService'
 
 export const submissionService = {
-  getAuthHeaders(): HeadersInit {
-    const token = authService.getToken()
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    }
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`
-    }
-    return headers
-  },
-
   async submitSolution(request: SubmissionRequest): Promise<SubmissionResponse> {
-    const response = await fetch('/api/submissions', {
+    const response = await authService.fetchWithAuth('/api/submissions', {
       method: 'POST',
-      headers: this.getAuthHeaders(),
       body: JSON.stringify(request),
     })
 
@@ -43,9 +31,8 @@ export const submissionService = {
   },
 
   async getSubmission(id: string): Promise<SubmissionResponse> {
-    const response = await fetch(`/api/submissions/${id}`, {
+    const response = await authService.fetchWithAuth(`/api/submissions/${id}`, {
       method: 'GET',
-      headers: this.getAuthHeaders(),
     })
 
     if (!response.ok) {
