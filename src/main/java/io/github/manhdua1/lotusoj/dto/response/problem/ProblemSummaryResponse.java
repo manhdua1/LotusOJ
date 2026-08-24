@@ -16,7 +16,10 @@ public class ProblemSummaryResponse {
     private String slug;
     private String title;
     private Problem.ProblemDifficulty difficulty;
+    private Problem.ProblemStatus status;
     private List<String> tags;
     private Double acceptanceRate;  // tính từ total_accepted / total_submissions
     private Boolean solvedByCurrentUser; // null nếu chưa đăng nhập
+    private java.time.LocalDateTime createdAt;
+    private java.time.LocalDateTime updatedAt;
 }

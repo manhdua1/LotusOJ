@@ -46,9 +46,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onViewProblem }) => {
   const [error, setError] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
 
-  const [keyword, setKeyword] = useState<string>('')
-  const [difficulty, setDifficulty] = useState<ProblemDifficulty | ''>('')
-  const [statusFilter, setStatusFilter] = useState<ProblemStatus | ''>('')
+  // Filter Inputs State (controlled form inputs)
+  const [inputKeyword, setInputKeyword] = useState<string>('')
+  const [inputDifficulty, setInputDifficulty] = useState<ProblemDifficulty | ''>('')
+  const [inputStatus, setInputStatus] = useState<ProblemStatus | ''>('')
+
+  // Applied Filter State (triggers API call only when user submits filter)
+  const [appliedFilters, setAppliedFilters] = useState<{
+    keyword: string
+    difficulty: ProblemDifficulty | ''
+    status: ProblemStatus | ''
+  }>({
+    keyword: '',
+    difficulty: '',
+    status: '',
+  })
+
   const [page, setPage] = useState<number>(0)
   const [totalPages, setTotalPages] = useState<number>(1)
   const [totalElements, setTotalElements] = useState<number>(0)
@@ -93,9 +106,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onViewProblem }) => {
     setError(null)
     try {
       const filter: ProblemFilterRequest = {
-        keyword: keyword.trim() || undefined,
-        difficulty: difficulty || undefined,
-        status: statusFilter || undefined,
+        keyword: appliedFilters.keyword.trim() || undefined,
+        difficulty: appliedFilters.difficulty || undefined,
+        status: appliedFilters.status || undefined,
       }
       const res = await problemService.getProblems(filter, page, pageSize)
       setProblems(res.content || [])
@@ -110,7 +123,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onViewProblem }) => {
     } finally {
       setLoading(false)
     }
-  }, [keyword, difficulty, statusFilter, page])
+  }, [appliedFilters, page])
 
   useEffect(() => {
     if (activeTab === 'LIST') {
@@ -127,16 +140,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onViewProblem }) => {
 
   // Handle Quick Status Change
   const handleStatusChange = async (id: string, newStatus: ProblemStatus) => {
+    // 1. Optimistic update: instantly update status without re-sorting or jumping to top
+    setProblems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, status: newStatus } : item))
+    )
+
     try {
       await problemService.updateProblemStatus(id, newStatus)
-      showNotification(`Đã chuyển trạng thái bài tập sang: ${newStatus}`)
-      fetchProblems()
+      const statusLabel =
+        newStatus === 'PUBLISHED' ? 'Công khai (PUBLISHED)' : newStatus === 'DRAFT' ? 'Bản nháp (DRAFT)' : 'Lưu trữ (ARCHIVED)'
+      showNotification(`Đã cập nhật trạng thái bài tập sang: ${statusLabel}`)
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message)
       } else {
         setError('Lỗi khi cập nhật trạng thái bài tập!')
       }
+      fetchProblems()
     }
   }
 
@@ -406,7 +426,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onViewProblem }) => {
               onSubmit={(e) => {
                 e.preventDefault()
                 setPage(0)
-                fetchProblems()
+                setAppliedFilters({
+                  keyword: inputKeyword,
+                  difficulty: inputDifficulty,
+                  status: inputStatus,
+                })
               }}
             >
               <div className="filter-group">
@@ -415,8 +439,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onViewProblem }) => {
                   type="text"
                   className="cf-input filter-input"
                   placeholder="Tiêu đề, mã slug..."
-                  value={keyword}
-                  onChange={(e) => setKeyword(e.target.value)}
+                  value={inputKeyword}
+                  onChange={(e) => setInputKeyword(e.target.value)}
                 />
               </div>
 
@@ -424,11 +448,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onViewProblem }) => {
                 <label className="filter-label">Độ khó:</label>
                 <select
                   className="cf-input filter-select"
-                  value={difficulty}
-                  onChange={(e) => {
-                    setDifficulty(e.target.value as ProblemDifficulty | '')
-                    setPage(0)
-                  }}
+                  value={inputDifficulty}
+                  onChange={(e) => setInputDifficulty(e.target.value as ProblemDifficulty | '')}
                 >
                   <option value="">Tất cả độ khó</option>
                   <option value="EASY">Dễ (Easy)</option>
@@ -441,11 +462,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onViewProblem }) => {
                 <label className="filter-label">Trạng thái:</label>
                 <select
                   className="cf-input filter-select"
-                  value={statusFilter}
-                  onChange={(e) => {
-                    setStatusFilter(e.target.value as ProblemStatus | '')
-                    setPage(0)
-                  }}
+                  value={inputStatus}
+                  onChange={(e) => setInputStatus(e.target.value as ProblemStatus | '')}
                 >
                   <option value="">Tất cả trạng thái</option>
                   <option value="PUBLISHED">Công khai (PUBLISHED)</option>
@@ -458,15 +476,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onViewProblem }) => {
                 <button type="submit" className="btn-cf btn-cf-primary">
                   Lọc
                 </button>
-                {(keyword || difficulty || statusFilter) && (
+                {(inputKeyword || inputDifficulty || inputStatus || appliedFilters.keyword || appliedFilters.difficulty || appliedFilters.status) && (
                   <button
                     type="button"
                     className="btn-cf"
                     onClick={() => {
-                      setKeyword('')
-                      setDifficulty('')
-                      setStatusFilter('')
+                      setInputKeyword('')
+                      setInputDifficulty('')
+                      setInputStatus('')
                       setPage(0)
+                      setAppliedFilters({
+                        keyword: '',
+                        difficulty: '',
+                        status: '',
+                      })
                     }}
                   >
                     Xóa lọc
@@ -523,7 +546,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onViewProblem }) => {
                             )}
                           </td>
                           <td style={{ textAlign: 'center' }}>{getDifficultyBadge(p.difficulty)}</td>
-                          <td style={{ textAlign: 'center' }}>{getStatusBadge('PUBLISHED')}</td>
+                          <td style={{ textAlign: 'center' }}>{getStatusBadge(p.status)}</td>
                           <td>
                             <div className="admin-actions-cell">
                               {onViewProblem && (
@@ -547,7 +570,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onViewProblem }) => {
                               <select
                                 className="cf-input"
                                 style={{ fontSize: '11px', padding: '2px 4px', height: '24px' }}
-                                defaultValue="PUBLISHED"
+                                value={p.status || 'PUBLISHED'}
                                 onChange={(e) => handleStatusChange(p.id, e.target.value as ProblemStatus)}
                               >
                                 <option value="PUBLISHED">Công khai</option>
@@ -1022,8 +1045,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onViewProblem }) => {
               </button>
               <button
                 type="button"
-                className="btn-cf"
-                style={{ backgroundColor: '#d32f2f', color: '#fff', borderColor: '#b71c1c' }}
+                className="btn-cf btn-cf-danger"
                 onClick={handleDeleteProblem}
               >
                 Xóa bài tập

@@ -447,6 +447,19 @@ a:hover {
   border-color: #173163;
 }
 
+.btn-cf-danger {
+  background: linear-gradient(180deg, #e53935 0%, #c62828 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid #b71c1c !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+}
+
+.btn-cf-danger:hover:not(:disabled) {
+  background: linear-gradient(180deg, #d32f2f 0%, #b71c1c 100%) !important;
+  border-color: #8e0000 !important;
+  color: #ffffff !important;
+}
+
 .link-alt {
   font-size: 12px;
   color: #1755a6;

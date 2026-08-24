@@ -12,9 +12,12 @@ export interface ProblemSummaryResponse {
   slug: string
   title: string
   difficulty: ProblemDifficulty
+  status: ProblemStatus
   tags: string[]
   acceptanceRate: number | null
   solvedByCurrentUser: boolean | null
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface TestCaseResponse {
