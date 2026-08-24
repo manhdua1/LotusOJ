@@ -16,7 +16,6 @@ function App() {
   const [actionNotice, setActionNotice] = useState<string | null>(null)
   const [selectedSlug, setSelectedSlug] = useState<string>('two-sum')
   const [activeTagFilter, setActiveTagFilter] = useState<string>('')
-  const [searchKeyword, setSearchKeyword] = useState<string>('')
 
   // Initialize auth state and hash routing
   useEffect(() => {
@@ -89,12 +88,6 @@ function App() {
     window.location.hash = 'problemset'
   }
 
-  const handleHeaderSearch = (keyword: string) => {
-    setSearchKeyword(keyword)
-    setCurrentTab('problemset')
-    window.location.hash = 'problemset'
-  }
-
   const handleLoginSuccess = (loggedInUser: UserResponse, _token: string) => {
     setUser(loggedInUser)
     setActionNotice(`Chào mừng ${loggedInUser.username} đã quay trở lại hệ thống LotusOJ!`)
@@ -124,7 +117,6 @@ function App() {
         onNavigate={handleNavigate}
         user={user}
         onLogout={handleLogout}
-        onSearchProblem={handleHeaderSearch}
       />
 
       {/* Main Container */}
@@ -139,7 +131,6 @@ function App() {
           <ProblemList
             onSelectProblem={handleSelectProblem}
             initialTag={activeTagFilter}
-            initialKeyword={searchKeyword}
           />
         ) : currentTab === 'problem-detail' ? (
           <ProblemDetail
