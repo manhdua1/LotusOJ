@@ -9,20 +9,17 @@ interface ProblemListProps {
 }
 
 const POPULAR_TAGS = [
-  'math',
-  'array',
-  'dp',
-  'graphs',
-  'greedy',
-  'binary-search',
-  'strings',
-  'number-theory',
-  'data-structures',
-  'trees',
-  'flows',
-  'shortest-paths',
-  'hash-table',
-  'backtracking',
+  'Array',
+  'String',
+  'Hash Table',
+  'Dynamic Programming',
+  'Two Pointers',
+  'Greedy',
+  'Math',
+  'Sorting',
+  'Graph',
+  'Binary Search',
+  'Tree',
 ]
 
 export const ProblemList: React.FC<ProblemListProps> = ({
