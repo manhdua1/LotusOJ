@@ -1,5 +1,6 @@
 package io.github.manhdua1.lotusoj.judge;
 
+import io.github.manhdua1.lotusoj.dto.response.testCase.TestCaseResponse;
 import io.github.manhdua1.lotusoj.entity.problem.Problem;
 import io.github.manhdua1.lotusoj.entity.submission.Submission;
 import io.github.manhdua1.lotusoj.entity.submission.SubmissionResult;
@@ -68,7 +69,7 @@ public class JudgeService {
             }
 
             // 2. Fetch test cases
-            List<TestCase> testCases = testCaseService.getTestCasesForJudging(submission.getProblem().getId());
+            List<TestCaseResponse> testCases = testCaseService.getTestCasesForJudging(submission.getProblem().getId());
             if (testCases.isEmpty()) {
                 log.warn("No test cases found for problem {}", submission.getProblem().getId());
                 finishWithVerdict(submission, Verdict.ACCEPTED, null, 0, 0, 0, 0);
@@ -84,7 +85,7 @@ public class JudgeService {
             int memoryLimit = submission.getProblem().getMemoryLimitKb() != null ? submission.getProblem().getMemoryLimitKb() : 262144;
 
             // 3. Run each test case
-            for (TestCase tc : testCases) {
+            for (TestCaseResponse tc : testCases) {
                 ExecutionResult execResult = dockerExecutor.execute(
                         submission.getLanguage(),
                         workDir,
@@ -107,7 +108,7 @@ public class JudgeService {
 
                 submissionResultRepository.save(SubmissionResult.builder()
                         .submission(submission)
-                        .testCase(tc)
+                        .testCase(TestCase.builder().id(tc.getId()).build())
                         .verdict(tcVerdict)
                         .runtimeMs(execResult.getRuntimeMs())
                         .memoryKb((int) execResult.getMemoryKb())

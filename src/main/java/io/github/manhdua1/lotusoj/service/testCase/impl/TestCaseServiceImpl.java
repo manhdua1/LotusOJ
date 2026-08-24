@@ -1,6 +1,8 @@
 package io.github.manhdua1.lotusoj.service.testCase.impl;
 
+import io.github.manhdua1.lotusoj.dto.response.testCase.TestCaseResponse;
 import io.github.manhdua1.lotusoj.entity.testCase.TestCase;
+import io.github.manhdua1.lotusoj.mapper.TestCaseMapper;
 import io.github.manhdua1.lotusoj.repository.testCase.TestCaseRepository;
 import io.github.manhdua1.lotusoj.service.testCase.TestCaseService;
 import lombok.AccessLevel;
@@ -20,18 +22,28 @@ import java.util.UUID;
 public class TestCaseServiceImpl implements TestCaseService {
 
     TestCaseRepository testCaseRepository;
+    TestCaseMapper testCaseMapper;
 
     @Override
     @Transactional(readOnly = true)
-    public List<TestCase> getTestCasesForJudging(UUID problemId) {
+    public List<TestCaseResponse> getTestCasesForJudging(UUID problemId) {
         log.debug("Fetching all test cases for judging problem: {}", problemId);
-        return testCaseRepository.findByProblemIdOrderByOrderIndexAsc(problemId);
+        List<TestCase> testCases = testCaseRepository.findByProblemIdOrderByOrderIndexAsc(problemId);
+        return testCaseMapper.toTestCaseResponseList(testCases);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<TestCase> getSampleTestCases(UUID problemId) {
-        return testCaseRepository.findByProblemIdAndIsSampleTrueOrderByOrderIndexAsc(problemId);
+    public List<TestCaseResponse> getSampleTestCases(UUID problemId) {
+        List<TestCase> testCases = testCaseRepository.findByProblemIdAndIsSampleTrueOrderByOrderIndexAsc(problemId);
+        return testCaseMapper.toTestCaseResponseList(testCases);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TestCaseResponse> getTestCasesByProblemId(UUID problemId) {
+        List<TestCase> testCases = testCaseRepository.findByProblemIdOrderByOrderIndexAsc(problemId);
+        return testCaseMapper.toTestCaseResponseList(testCases);
     }
 
     @Override
