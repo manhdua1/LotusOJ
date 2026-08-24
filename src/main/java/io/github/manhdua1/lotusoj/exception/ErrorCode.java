@@ -28,7 +28,8 @@ public enum ErrorCode {
     SLUG_EXISTED(1017, "Problem slug already exists", HttpStatus.BAD_REQUEST),
     TAG_NOT_FOUND(1018, "Tag not found", HttpStatus.NOT_FOUND),
     UNAUTHORIZED_OPERATION(1019, "You do not have permission to perform this operation", HttpStatus.FORBIDDEN),
-    SUBMISSION_NOT_FOUND(1020, "Submission not found", HttpStatus.NOT_FOUND)
+    SUBMISSION_NOT_FOUND(1020, "Submission not found", HttpStatus.NOT_FOUND),
+    TEST_CASE_NOT_FOUND(1021, "Test case not found", HttpStatus.NOT_FOUND)
     ;
 
     int code;

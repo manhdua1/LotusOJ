@@ -1,7 +1,16 @@
 package io.github.manhdua1.lotusoj.service.testCase.impl;
 
+import io.github.manhdua1.lotusoj.dto.request.testCase.CreateTestCaseRequest;
+import io.github.manhdua1.lotusoj.dto.request.testCase.UpdateTestCaseRequest;
+import io.github.manhdua1.lotusoj.dto.response.testCase.TestCaseResponse;
+import io.github.manhdua1.lotusoj.entity.problem.Problem;
 import io.github.manhdua1.lotusoj.entity.testCase.TestCase;
+import io.github.manhdua1.lotusoj.exception.AppException;
+import io.github.manhdua1.lotusoj.exception.ErrorCode;
+import io.github.manhdua1.lotusoj.mapper.TestCaseMapper;
+import io.github.manhdua1.lotusoj.repository.problem.ProblemRepository;
 import io.github.manhdua1.lotusoj.repository.testCase.TestCaseRepository;
+import io.github.manhdua1.lotusoj.service.problem.ProblemRedisService;
 import io.github.manhdua1.lotusoj.service.testCase.TestCaseService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,18 +30,107 @@ import java.util.UUID;
 public class TestCaseServiceImpl implements TestCaseService {
 
     TestCaseRepository testCaseRepository;
+    ProblemRepository problemRepository;
+    TestCaseMapper testCaseMapper;
+    ProblemRedisService problemRedisService;
 
     @Override
     @Transactional(readOnly = true)
-    public List<TestCase> getTestCasesForJudging(UUID problemId) {
+    public List<TestCaseResponse> getTestCasesForJudging(UUID problemId) {
         log.debug("Fetching all test cases for judging problem: {}", problemId);
-        return testCaseRepository.findByProblemIdOrderByOrderIndexAsc(problemId);
+        List<TestCase> testCases = testCaseRepository.findByProblemIdOrderByOrderIndexAsc(problemId);
+        return testCaseMapper.toTestCaseResponseList(testCases);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<TestCase> getSampleTestCases(UUID problemId) {
-        return testCaseRepository.findByProblemIdAndIsSampleTrueOrderByOrderIndexAsc(problemId);
+    public List<TestCaseResponse> getSampleTestCases(UUID problemId) {
+        List<TestCase> testCases = testCaseRepository.findByProblemIdAndIsSampleTrueOrderByOrderIndexAsc(problemId);
+        return testCaseMapper.toTestCaseResponseList(testCases);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TestCaseResponse> getTestCasesByProblemId(UUID problemId) {
+        List<TestCase> testCases = testCaseRepository.findByProblemIdOrderByOrderIndexAsc(problemId);
+        return testCaseMapper.toTestCaseResponseList(testCases);
+    }
+
+    @Override
+    @Transactional
+    public TestCaseResponse createTestCase(UUID problemId, CreateTestCaseRequest request) {
+        Problem problem = problemRepository.findByIdAndIsDeletedFalse(problemId)
+                .orElseThrow(() -> new AppException(ErrorCode.PROBLEM_NOT_FOUND));
+
+        int orderIndex = (request.getOrderIndex() != null && request.getOrderIndex() > 0)
+                ? request.getOrderIndex()
+                : (int) testCaseRepository.countByProblemId(problemId) + 1;
+
+        TestCase testCase = TestCase.builder()
+                .problem(problem)
+                .input(request.getInput() != null ? request.getInput() : "")
+                .expectedOutput(request.getExpectedOutput() != null ? request.getExpectedOutput() : "")
+                .isSample(request.getIsSample() != null && request.getIsSample())
+                .orderIndex(orderIndex)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        TestCase saved = testCaseRepository.save(testCase);
+        
+        // Evict Problem Detail cache in Redis so users get fresh sample test cases & problem detail
+        problemRedisService.evictProblemDetail(problem.getId(), problem.getSlug());
+
+        log.info("Created test case ID: {} for problem: {}", saved.getId(), problemId);
+        return testCaseMapper.toTestCaseResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public TestCaseResponse updateTestCase(UUID testCaseId, UpdateTestCaseRequest request) {
+        TestCase testCase = testCaseRepository.findById(testCaseId)
+                .orElseThrow(() -> new AppException(ErrorCode.TEST_CASE_NOT_FOUND));
+
+        if (request.getInput() != null) {
+            testCase.setInput(request.getInput());
+        }
+        if (request.getExpectedOutput() != null) {
+            testCase.setExpectedOutput(request.getExpectedOutput());
+        }
+        if (request.getIsSample() != null) {
+            testCase.setSample(request.getIsSample());
+        }
+        if (request.getOrderIndex() != null) {
+            testCase.setOrderIndex(request.getOrderIndex());
+        }
+
+        TestCase saved = testCaseRepository.save(testCase);
+
+        // Evict Problem Detail cache in Redis
+        if (saved.getProblem() != null) {
+            problemRedisService.evictProblemDetail(saved.getProblem().getId(), saved.getProblem().getSlug());
+        }
+
+        log.info("Updated test case ID: {}", saved.getId());
+        return testCaseMapper.toTestCaseResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public void deleteTestCase(UUID testCaseId) {
+        TestCase testCase = testCaseRepository.findById(testCaseId)
+                .orElseThrow(() -> new AppException(ErrorCode.TEST_CASE_NOT_FOUND));
+
+        UUID problemId = testCase.getProblem() != null ? testCase.getProblem().getId() : null;
+        String slug = testCase.getProblem() != null ? testCase.getProblem().getSlug() : null;
+
+        testCaseRepository.delete(testCase);
+
+        // Evict Problem Detail cache in Redis
+        if (problemId != null) {
+            problemRedisService.evictProblemDetail(problemId, slug);
+        }
+
+        log.info("Deleted test case ID: {}", testCaseId);
     }
 
     @Override
