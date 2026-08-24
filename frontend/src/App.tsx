@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Header, type NavTab } from './components/Header'
 import { LoginForm } from './components/LoginForm'
 import { RegisterForm } from './components/RegisterForm'
-import { Sidebar } from './components/Sidebar'
 import { Footer } from './components/Footer'
 import { ProblemList } from './components/ProblemList'
 import { ProblemDetail } from './components/ProblemDetail'
@@ -136,18 +135,12 @@ function App() {
           </div>
         )}
 
-        {/* View Layout Switching */}
         {currentTab === 'problemset' ? (
-          <div className="content-layout">
-            <div className="main-form-column">
-              <ProblemList
-                onSelectProblem={handleSelectProblem}
-                initialTag={activeTagFilter}
-                initialKeyword={searchKeyword}
-              />
-            </div>
-            <Sidebar />
-          </div>
+          <ProblemList
+            onSelectProblem={handleSelectProblem}
+            initialTag={activeTagFilter}
+            initialKeyword={searchKeyword}
+          />
         ) : currentTab === 'problem-detail' ? (
           <ProblemDetail
             slug={selectedSlug}
@@ -155,112 +148,101 @@ function App() {
             onSelectTag={handleSelectTag}
           />
         ) : currentTab === 'admin' ? (
-          <div className="content-layout">
-            <div className="main-form-column">
-              {user?.role === 'ADMIN' || user?.role === 'PROBLEM_SETTER' ? (
-                <AdminPanel onViewProblem={handleSelectProblem} />
-              ) : (
-                <div className="roundbox">
-                  <div className="caption titled">
-                    <span>
-                      <span className="caption-arrow">→</span> Quyền truy cập bị từ chối
-                    </span>
+          user?.role === 'ADMIN' || user?.role === 'PROBLEM_SETTER' ? (
+            <AdminPanel onViewProblem={handleSelectProblem} />
+          ) : (
+            <div className="roundbox">
+              <div className="caption titled">
+                <span>
+                  <span className="caption-arrow">→</span> Quyền truy cập bị từ chối
+                </span>
+              </div>
+              <div className="roundbox-body" style={{ textAlign: 'center', padding: '30px' }}>
+                <h3 style={{ color: '#d32f2f', marginBottom: '8px' }}>Bạn không có quyền truy cập khu vực Quản trị</h3>
+                <p style={{ color: '#666', marginBottom: '16px' }}>
+                  Khu vực này chỉ dành cho tài khoản có quyền <strong>Quản trị viên (ADMIN)</strong> hoặc <strong>Người tạo đề (PROBLEM_SETTER)</strong>.
+                </p>
+                <button
+                  type="button"
+                  className="btn-cf btn-cf-primary"
+                  onClick={() => handleNavigate('login')}
+                >
+                  Đăng nhập tài khoản Quản trị
+                </button>
+              </div>
+            </div>
+          )
+        ) : (
+          <div className="auth-view-wrapper" style={{ maxWidth: '680px', margin: '0 auto' }}>
+            {/* Tab switch bar when not logged in */}
+            {!user && (currentTab === 'login' || currentTab === 'register') && (
+              <div className="auth-switch-bar">
+                <button
+                  type="button"
+                  className={`auth-tab-btn ${currentTab === 'login' ? 'active' : ''}`}
+                  onClick={() => handleNavigate('login')}
+                >
+                  Đăng nhập
+                </button>
+                <button
+                  type="button"
+                  className={`auth-tab-btn ${currentTab === 'register' ? 'active' : ''}`}
+                  onClick={() => handleNavigate('register')}
+                >
+                  Đăng ký tài khoản
+                </button>
+              </div>
+            )}
+
+            {/* View Switching */}
+            {user && currentTab === 'home' ? (
+              <div className="roundbox">
+                <div className="caption titled">
+                  <span>
+                    <span className="caption-arrow">→</span> Bảng điều khiển cá nhân
+                  </span>
+                </div>
+                <div className="roundbox-body welcome-user-card">
+                  <h3>Xin chào, <span className="user-handle specialist">{user.username}</span>!</h3>
+                  <div className="user-badge">
+                    Điểm Rating: {user.rating || 1500} ({user.rank || 'Chuyên viên'})
                   </div>
-                  <div className="roundbox-body" style={{ textAlign: 'center', padding: '30px' }}>
-                    <h3 style={{ color: '#d32f2f', marginBottom: '8px' }}>Bạn không có quyền truy cập khu vực Quản trị</h3>
-                    <p style={{ color: '#666', marginBottom: '16px' }}>
-                      Khu vực này chỉ dành cho tài khoản có quyền <strong>Quản trị viên (ADMIN)</strong> hoặc <strong>Người tạo đề (PROBLEM_SETTER)</strong>.
-                    </p>
+                  <p style={{ color: '#666', marginTop: '10px', fontSize: '13px' }}>
+                    Email tài khoản: <strong>{user.email}</strong>
+                  </p>
+                  <p style={{ color: '#888', marginTop: '6px', fontSize: '12px' }}>
+                    Bạn đã đăng nhập thành công vào LotusOJ. Hãy bắt đầu giải các bài toán tại mục <strong>KHO BÀI TẬP</strong> hoặc thử thách bản thân trong các <strong>KỲ THI</strong> sắp tới.
+                  </p>
+
+                  <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
                     <button
                       type="button"
                       className="btn-cf btn-cf-primary"
-                      onClick={() => handleNavigate('login')}
+                      onClick={() => handleNavigate('problemset')}
                     >
-                      Đăng nhập tài khoản Quản trị
+                      Xem kho bài tập
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-cf"
+                      onClick={handleLogout}
+                    >
+                      Đăng xuất
                     </button>
                   </div>
                 </div>
-              )}
-            </div>
-            <Sidebar />
-          </div>
-        ) : (
-          <div className="content-layout">
-            {/* Left Column: Form or Home Content */}
-            <div className="main-form-column">
-              {/* Tab switch bar when not logged in */}
-              {!user && (currentTab === 'login' || currentTab === 'register') && (
-                <div className="auth-switch-bar">
-                  <button
-                    type="button"
-                    className={`auth-tab-btn ${currentTab === 'login' ? 'active' : ''}`}
-                    onClick={() => handleNavigate('login')}
-                  >
-                    Đăng nhập
-                  </button>
-                  <button
-                    type="button"
-                    className={`auth-tab-btn ${currentTab === 'register' ? 'active' : ''}`}
-                    onClick={() => handleNavigate('register')}
-                  >
-                    Đăng ký tài khoản
-                  </button>
-                </div>
-              )}
-
-              {/* View Switching */}
-              {user && currentTab === 'home' ? (
-                <div className="roundbox">
-                  <div className="caption titled">
-                    <span>
-                      <span className="caption-arrow">→</span> Bảng điều khiển cá nhân
-                    </span>
-                  </div>
-                  <div className="roundbox-body welcome-user-card">
-                    <h3>Xin chào, <span className="user-handle specialist">{user.username}</span>!</h3>
-                    <div className="user-badge">
-                      Điểm Rating: {user.rating || 1500} ({user.rank || 'Chuyên viên'})
-                    </div>
-                    <p style={{ color: '#666', marginTop: '10px', fontSize: '13px' }}>
-                      Email tài khoản: <strong>{user.email}</strong>
-                    </p>
-                    <p style={{ color: '#888', marginTop: '6px', fontSize: '12px' }}>
-                      Bạn đã đăng nhập thành công vào LotusOJ. Hãy bắt đầu giải các bài toán tại mục <strong>KHO BÀI TẬP</strong> hoặc thử thách bản thân trong các <strong>KỲ THI</strong> sắp tới.
-                    </p>
-
-                    <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
-                      <button
-                        type="button"
-                        className="btn-cf btn-cf-primary"
-                        onClick={() => handleNavigate('problemset')}
-                      >
-                        Xem kho bài tập
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-cf"
-                        onClick={handleLogout}
-                      >
-                        Đăng xuất
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : currentTab === 'register' ? (
-                <RegisterForm
-                  onSuccess={handleRegisterSuccess}
-                  onSwitchToLogin={() => handleNavigate('login')}
-                />
-              ) : (
-                <LoginForm
-                  onSuccess={handleLoginSuccess}
-                  onSwitchToRegister={() => handleNavigate('register')}
-                />
-              )}
-            </div>
-
-            {/* Right Column: Codeforces Info Sidebar */}
-            <Sidebar />
+              </div>
+            ) : currentTab === 'register' ? (
+              <RegisterForm
+                onSuccess={handleRegisterSuccess}
+                onSwitchToLogin={() => handleNavigate('login')}
+              />
+            ) : (
+              <LoginForm
+                onSuccess={handleLoginSuccess}
+                onSwitchToRegister={() => handleNavigate('register')}
+              />
+            )}
           </div>
         )}
       </main>
