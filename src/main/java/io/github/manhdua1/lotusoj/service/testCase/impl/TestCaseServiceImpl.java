@@ -10,6 +10,7 @@ import io.github.manhdua1.lotusoj.exception.ErrorCode;
 import io.github.manhdua1.lotusoj.mapper.TestCaseMapper;
 import io.github.manhdua1.lotusoj.repository.problem.ProblemRepository;
 import io.github.manhdua1.lotusoj.repository.testCase.TestCaseRepository;
+import io.github.manhdua1.lotusoj.service.problem.ProblemRedisService;
 import io.github.manhdua1.lotusoj.service.testCase.TestCaseService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ public class TestCaseServiceImpl implements TestCaseService {
     TestCaseRepository testCaseRepository;
     ProblemRepository problemRepository;
     TestCaseMapper testCaseMapper;
+    ProblemRedisService problemRedisService;
 
     @Override
     @Transactional(readOnly = true)
@@ -74,6 +76,10 @@ public class TestCaseServiceImpl implements TestCaseService {
                 .build();
 
         TestCase saved = testCaseRepository.save(testCase);
+        
+        // Evict Problem Detail cache in Redis so users get fresh sample test cases & problem detail
+        problemRedisService.evictProblemDetail(problem.getId(), problem.getSlug());
+
         log.info("Created test case ID: {} for problem: {}", saved.getId(), problemId);
         return testCaseMapper.toTestCaseResponse(saved);
     }
@@ -98,6 +104,12 @@ public class TestCaseServiceImpl implements TestCaseService {
         }
 
         TestCase saved = testCaseRepository.save(testCase);
+
+        // Evict Problem Detail cache in Redis
+        if (saved.getProblem() != null) {
+            problemRedisService.evictProblemDetail(saved.getProblem().getId(), saved.getProblem().getSlug());
+        }
+
         log.info("Updated test case ID: {}", saved.getId());
         return testCaseMapper.toTestCaseResponse(saved);
     }
@@ -108,7 +120,16 @@ public class TestCaseServiceImpl implements TestCaseService {
         TestCase testCase = testCaseRepository.findById(testCaseId)
                 .orElseThrow(() -> new AppException(ErrorCode.TEST_CASE_NOT_FOUND));
 
+        UUID problemId = testCase.getProblem() != null ? testCase.getProblem().getId() : null;
+        String slug = testCase.getProblem() != null ? testCase.getProblem().getSlug() : null;
+
         testCaseRepository.delete(testCase);
+
+        // Evict Problem Detail cache in Redis
+        if (problemId != null) {
+            problemRedisService.evictProblemDetail(problemId, slug);
+        }
+
         log.info("Deleted test case ID: {}", testCaseId);
     }
 
