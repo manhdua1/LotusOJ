@@ -9,20 +9,17 @@ interface ProblemListProps {
 }
 
 const POPULAR_TAGS = [
-  'math',
-  'array',
-  'dp',
-  'graphs',
-  'greedy',
-  'binary-search',
-  'strings',
-  'number-theory',
-  'data-structures',
-  'trees',
-  'flows',
-  'shortest-paths',
-  'hash-table',
-  'backtracking',
+  'Array',
+  'String',
+  'Hash Table',
+  'Dynamic Programming',
+  'Two Pointers',
+  'Greedy',
+  'Math',
+  'Sorting',
+  'Graph',
+  'Binary Search',
+  'Tree',
 ]
 
 export const ProblemList: React.FC<ProblemListProps> = ({
@@ -225,7 +222,6 @@ export const ProblemList: React.FC<ProblemListProps> = ({
           </div>
         ) : problems.length === 0 ? (
           <div className="roundbox-body empty-state-box">
-            <div className="empty-icon">📂</div>
             <h4>Không tìm thấy bài tập nào phù hợp</h4>
             <p>Hãy thử thay đổi từ khóa tìm kiếm hoặc chọn lại các tiêu chí lọc.</p>
             <button type="button" className="btn-cf" onClick={handleResetFilters}>
@@ -309,11 +305,11 @@ export const ProblemList: React.FC<ProblemListProps> = ({
                       <td style={{ textAlign: 'center' }}>
                         {prob.solvedByCurrentUser === true ? (
                           <span className="solved-badge solved-yes" title="Đã giải bài này">
-                            ✓ Đã giải
+                            Đã giải
                           </span>
                         ) : prob.solvedByCurrentUser === false ? (
                           <span className="solved-badge solved-attempted" title="Đã nộp nhưng chưa AC">
-                            ✗ Chưa đạt
+                            Chưa đạt
                           </span>
                         ) : (
                           <span className="solved-badge solved-none">—</span>

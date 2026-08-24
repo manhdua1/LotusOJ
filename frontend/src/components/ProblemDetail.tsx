@@ -1,6 +1,9 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import type { ProblemDetailResponse, ProblemDifficulty } from '../types/problem'
+import type { Language, SubmissionResponse, Verdict } from '../types/submission'
 import { problemService } from '../services/problemService'
+import { submissionService } from '../services/submissionService'
+import { authService } from '../services/authService'
 
 interface ProblemDetailProps {
   slug: string
@@ -18,10 +21,14 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
   const [error, setError] = useState<string | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
-  // Submit code mockup state
-  const [selectedLanguage, setSelectedLanguage] = useState<string>('cpp20')
+  // Submit code state
+  const [selectedLanguage, setSelectedLanguage] = useState<Language>('CPP')
   const [sourceCode, setSourceCode] = useState<string>('')
-  const [submitStatus, setSubmitStatus] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState<boolean>(false)
+  const [currentSubmission, setCurrentSubmission] = useState<SubmissionResponse | null>(null)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+
+  const pollIntervalRef = useRef<number | null>(null)
 
   useEffect(() => {
     let isMounted = true
@@ -38,7 +45,7 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
           if (err instanceof Error) {
             setError(err.message)
           } else {
-            setError('Không thể tải thông tin đề bài.')
+            setError('Không thể tải thông tin bài tập.')
           }
         }
       } finally {
@@ -49,6 +56,9 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
     fetchDetail()
     return () => {
       isMounted = false
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current)
+      }
     }
   }, [slug])
 
@@ -60,17 +70,80 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
     }, 2000)
   }
 
-  const handleSubmitSolution = (e: React.FormEvent) => {
+  const startPollingSubmission = (submissionId: string) => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current)
+    }
+
+    let pollAttempts = 0
+    const maxAttempts = 30
+
+    pollIntervalRef.current = window.setInterval(async () => {
+      pollAttempts++
+      try {
+        const sub = await submissionService.getSubmission(submissionId)
+        setCurrentSubmission(sub)
+
+        if (sub.status === 'DONE' || sub.status === 'FAILED' || pollAttempts >= maxAttempts) {
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current)
+            pollIntervalRef.current = null
+          }
+          setSubmitting(false)
+        }
+      } catch {
+        if (pollAttempts >= maxAttempts && pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current)
+          pollIntervalRef.current = null
+          setSubmitting(false)
+        }
+      }
+    }, 1000)
+  }
+
+  const handleSubmitSolution = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!sourceCode.trim()) {
-      setSubmitStatus('Vui lòng nhập mã nguồn bài giải trước khi nộp.')
+    setSubmitError(null)
+
+    if (!authService.isAuthenticated()) {
+      setSubmitError('Bạn cần đăng nhập tài khoản để nộp bài chấm điểm!')
       return
     }
 
-    setSubmitStatus('Đang gửi bài nộp đến hệ thống chấm bài (Judge Server)...')
-    setTimeout(() => {
-      setSubmitStatus('Bài nộp đã được tiếp nhận! Tính năng chấm tự động đang được kết nối.')
-    }, 1200)
+    if (!sourceCode.trim()) {
+      setSubmitError('Vui lòng nhập mã nguồn bài giải trước khi nộp.')
+      return
+    }
+
+    if (!problem?.id) {
+      setSubmitError('Không tìm thấy thông tin bài tập để nộp.')
+      return
+    }
+
+    setSubmitting(true)
+    setCurrentSubmission(null)
+
+    try {
+      const sub = await submissionService.submitSolution({
+        problemId: problem.id,
+        language: selectedLanguage,
+        sourceCode: sourceCode.trim(),
+      })
+      setCurrentSubmission(sub)
+
+      if (sub.status === 'DONE' || sub.status === 'FAILED') {
+        setSubmitting(false)
+      } else {
+        startPollingSubmission(sub.id)
+      }
+    } catch (err: unknown) {
+      setSubmitting(false)
+      if (err instanceof Error) {
+        setSubmitError(err.message)
+      } else {
+        setSubmitError('Lỗi kết nối khi gửi bài nộp.')
+      }
+    }
   }
 
   const getDifficultyBadge = (diff: ProblemDifficulty) => {
@@ -86,16 +159,52 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
     }
   }
 
-  const formatMemory = (kb: number) => {
+  const getVerdictBadge = (verdict: Verdict | null, status: string) => {
+    if (status === 'PENDING') {
+      return <span style={{ color: '#888', fontWeight: 'bold' }}>Đang xếp hàng chờ chấm...</span>
+    }
+    if (status === 'JUDGING') {
+      return <span style={{ color: '#0066cc', fontWeight: 'bold' }}>Đang chấm bài...</span>
+    }
+
+    if (!verdict) {
+      return <span style={{ color: '#888' }}>{status}</span>
+    }
+
+    switch (verdict) {
+      case 'ACCEPTED':
+        return <span style={{ color: '#0a8020', fontWeight: 'bold', fontSize: '13px' }}>Chấp nhận (Accepted)</span>
+      case 'WRONG_ANSWER':
+        return <span style={{ color: '#d32f2f', fontWeight: 'bold', fontSize: '13px' }}>Sai kết quả (Wrong Answer)</span>
+      case 'TIME_LIMIT_EXCEEDED':
+        return <span style={{ color: '#ed6c02', fontWeight: 'bold', fontSize: '13px' }}>Quá thời gian (Time Limit Exceeded)</span>
+      case 'MEMORY_LIMIT_EXCEEDED':
+        return <span style={{ color: '#ed6c02', fontWeight: 'bold', fontSize: '13px' }}>Quá bộ nhớ (Memory Limit Exceeded)</span>
+      case 'COMPILATION_ERROR':
+        return <span style={{ color: '#9c27b0', fontWeight: 'bold', fontSize: '13px' }}>Lỗi biên dịch (Compilation Error)</span>
+      case 'RUNTIME_ERROR':
+        return <span style={{ color: '#d32f2f', fontWeight: 'bold', fontSize: '13px' }}>Lỗi thực thi (Runtime Error)</span>
+      case 'OUTPUT_LIMIT_EXCEEDED':
+        return <span style={{ color: '#ed6c02', fontWeight: 'bold', fontSize: '13px' }}>Quá dung lượng đầu ra (Output Limit)</span>
+      case 'INTERNAL_ERROR':
+        return <span style={{ color: '#d32f2f', fontWeight: 'bold', fontSize: '13px' }}>Lỗi hệ thống máy chấm (Internal Error)</span>
+      default:
+        return <span style={{ fontWeight: 'bold' }}>{verdict}</span>
+    }
+  }
+
+  const formatMemory = (kb?: number | null) => {
+    if (!kb) return '—'
     if (kb >= 1024) {
       return `${Math.round(kb / 1024)} MB`
     }
     return `${kb} KB`
   }
 
-  const formatTime = (ms: number) => {
+  const formatTime = (ms?: number | null) => {
+    if (ms === null || ms === undefined) return '—'
     if (ms >= 1000) {
-      return `${(ms / 1000).toFixed(1)} giây`
+      return `${(ms / 1000).toFixed(1)} s`
     }
     return `${ms} ms`
   }
@@ -105,7 +214,7 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
       <div className="roundbox">
         <div className="roundbox-body loading-box">
           <div className="cf-spinner"></div>
-          <span>Đang tải nội dung đề bài...</span>
+          <span>Đang tải nội dung đề bài từ hệ thống...</span>
         </div>
       </div>
     )
@@ -170,14 +279,16 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
             </div>
 
             {/* Statement Text */}
-            <div className="problem-section statement-section">
-              <h3 className="section-title">Mô tả bài toán</h3>
-              <div className="section-content text-formatted">
-                {problem.statement.split('\n').map((para, i) => (
-                  para.trim() ? <p key={i}>{para}</p> : <br key={i} />
-                ))}
+            {problem.statement && (
+              <div className="problem-section statement-section">
+                <h3 className="section-title">Mô tả bài toán</h3>
+                <div className="section-content text-formatted">
+                  {problem.statement.split('\n').map((para, i) => (
+                    para.trim() ? <p key={i}>{para}</p> : <br key={i} />
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Input Format */}
             {problem.inputFormat && (
@@ -233,7 +344,7 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
                             onClick={() => handleCopy(tc.input, `in-${idx}`)}
                             title="Sao chép đầu vào"
                           >
-                            {copiedId === `in-${idx}` ? '✓ Đã chép' : 'Sao chép'}
+                            {copiedId === `in-${idx}` ? 'Đã chép' : 'Sao chép'}
                           </button>
                         </div>
                         <pre className="sample-code">{tc.input}</pre>
@@ -249,7 +360,7 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
                             onClick={() => handleCopy(tc.expectedOutput, `out-${idx}`)}
                             title="Sao chép đầu ra"
                           >
-                            {copiedId === `out-${idx}` ? '✓ Đã chép' : 'Sao chép'}
+                            {copiedId === `out-${idx}` ? 'Đã chép' : 'Sao chép'}
                           </button>
                         </div>
                         <pre className="sample-code">{tc.expectedOutput}</pre>
@@ -291,7 +402,9 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
               <div className="sidebar-info-row">
                 <span className="info-label">Tỷ lệ AC:</span>
                 <span className="info-val-strong">
-                  {problem.acceptanceRate !== undefined ? `${problem.acceptanceRate}%` : '50%'}
+                  {problem.acceptanceRate !== undefined && problem.acceptanceRate !== null
+                    ? `${problem.acceptanceRate.toFixed(1)}%`
+                    : '—'}
                 </span>
               </div>
               <div className="sidebar-info-row">
@@ -319,7 +432,7 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
             </div>
           </div>
 
-          {/* Quick Submit Solution Card */}
+          {/* Solution Submit Card */}
           <div className="roundbox highlight">
             <div className="caption titled">
               <span>
@@ -329,7 +442,10 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
             <div className="roundbox-body">
               <form onSubmit={handleSubmitSolution}>
                 <div style={{ marginBottom: '10px' }}>
-                  <label htmlFor="select-lang" style={{ display: 'block', fontWeight: 'bold', fontSize: '11.5px', marginBottom: '4px' }}>
+                  <label
+                    htmlFor="select-lang"
+                    style={{ display: 'block', fontWeight: 'bold', fontSize: '11.5px', marginBottom: '4px' }}
+                  >
                     Ngôn ngữ lập trình:
                   </label>
                   <select
@@ -337,19 +453,22 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
                     className="cf-input"
                     style={{ width: '100%' }}
                     value={selectedLanguage}
-                    onChange={(e) => setSelectedLanguage(e.target.value)}
+                    disabled={submitting}
+                    onChange={(e) => setSelectedLanguage(e.target.value as Language)}
                   >
-                    <option value="cpp20">GNU C++20 (GCC 13.2)</option>
-                    <option value="cpp17">GNU C++17 (GCC 11.2)</option>
-                    <option value="java17">Java 17 (OpenJDK 17)</option>
-                    <option value="python3">Python 3.11</option>
-                    <option value="csharp">C# (.NET 8)</option>
-                    <option value="pypy3">PyPy 3.9</option>
+                    <option value="CPP">C++ (GCC 13.2)</option>
+                    <option value="JAVA">Java 17 (OpenJDK)</option>
+                    <option value="PYTHON">Python 3.11</option>
+                    <option value="C">C (GCC 13.2)</option>
+                    <option value="CSHARP">C# (.NET 8)</option>
                   </select>
                 </div>
 
                 <div style={{ marginBottom: '12px' }}>
-                  <label htmlFor="source-code" style={{ display: 'block', fontWeight: 'bold', fontSize: '11.5px', marginBottom: '4px' }}>
+                  <label
+                    htmlFor="source-code"
+                    style={{ display: 'block', fontWeight: 'bold', fontSize: '11.5px', marginBottom: '4px' }}
+                  >
                     Mã nguồn (Source code):
                   </label>
                   <textarea
@@ -358,13 +477,43 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
                     placeholder="// Nhập hoặc dán mã nguồn bài giải tại đây..."
                     rows={8}
                     value={sourceCode}
+                    disabled={submitting}
                     onChange={(e) => setSourceCode(e.target.value)}
                   />
                 </div>
 
-                {submitStatus && (
-                  <div className="cf-notice cf-notice-info" style={{ fontSize: '11.5px', padding: '6px 8px' }}>
-                    {submitStatus}
+                {submitError && (
+                  <div
+                    className="cf-notice cf-notice-error"
+                    style={{ fontSize: '11.5px', padding: '6px 8px', marginBottom: '10px' }}
+                  >
+                    {submitError}
+                  </div>
+                )}
+
+                {currentSubmission && (
+                  <div
+                    className="roundbox"
+                    style={{
+                      marginBottom: '12px',
+                      background: '#fafafa',
+                      border: '1px solid #ddd',
+                    }}
+                  >
+                    <div className="caption" style={{ padding: '4px 8px', fontSize: '12px', fontWeight: 'bold' }}>
+                      Kết quả chấm bài
+                    </div>
+                    <div style={{ padding: '8px', fontSize: '12px' }}>
+                      <div style={{ marginBottom: '4px' }}>
+                        Trạng thái: {getVerdictBadge(currentSubmission.verdict, currentSubmission.status)}
+                      </div>
+                      {currentSubmission.runtimeMs !== null && currentSubmission.runtimeMs !== undefined && (
+                        <div style={{ color: '#555' }}>Thời gian: {currentSubmission.runtimeMs} ms</div>
+                      )}
+                      {currentSubmission.memoryKb !== null && currentSubmission.memoryKb !== undefined && (
+                        <div style={{ color: '#555' }}>Bộ nhớ: {formatMemory(currentSubmission.memoryKb)}</div>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -372,8 +521,9 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
                   type="submit"
                   className="btn-cf btn-cf-primary"
                   style={{ width: '100%' }}
+                  disabled={submitting}
                 >
-                  Nộp bài chấm điểm
+                  {submitting ? 'Đang chấm điểm...' : 'Nộp bài chấm điểm'}
                 </button>
               </form>
             </div>

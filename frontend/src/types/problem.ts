@@ -12,9 +12,12 @@ export interface ProblemSummaryResponse {
   slug: string
   title: string
   difficulty: ProblemDifficulty
+  status: ProblemStatus
   tags: string[]
   acceptanceRate: number | null
   solvedByCurrentUser: boolean | null
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface TestCaseResponse {
@@ -56,6 +59,32 @@ export interface ProblemFilterRequest {
   status?: ProblemStatus | ''
   solved?: boolean
   keyword?: string
+}
+
+export interface CreateProblemRequest {
+  title: string
+  statement: string
+  inputFormat?: string
+  outputFormat?: string
+  constraints?: string
+  explanationNote?: string
+  timeLimitMs: number
+  memoryLimitKb: number
+  difficulty: ProblemDifficulty
+  tagNames?: string[]
+}
+
+export interface UpdateProblemRequest {
+  title?: string
+  statement?: string
+  inputFormat?: string
+  outputFormat?: string
+  constraints?: string
+  explanationNote?: string
+  timeLimitMs?: number
+  memoryLimitKb?: number
+  difficulty?: ProblemDifficulty
+  tagNames?: string[]
 }
 
 export interface PageResponse<T> {
