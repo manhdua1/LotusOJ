@@ -7,7 +7,13 @@ import type {
   ProblemSummaryResponse,
   UpdateProblemRequest,
 } from '../types/problem'
+import type {
+  CreateTestCaseRequest,
+  TestCaseResponse,
+  UpdateTestCaseRequest,
+} from '../types/testCase'
 import { problemService } from '../services/problemService'
+import { testCaseService } from '../services/testCaseService'
 
 interface AdminPanelProps {
   onViewProblem?: (slug: string) => void
@@ -100,6 +106,127 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onViewProblem }) => {
   // Delete Confirm State
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [deleteConfirmTitle, setDeleteConfirmTitle] = useState<string | null>(null)
+
+  // Test Case Manager Modal State
+  const [testCaseModalOpen, setTestCaseModalOpen] = useState(false)
+  const [activeTestCaseProblem, setActiveTestCaseProblem] = useState<ProblemSummaryResponse | null>(null)
+  const [testCasesList, setTestCasesList] = useState<TestCaseResponse[]>([])
+  const [loadingTestCases, setLoadingTestCases] = useState(false)
+  const [testCaseError, setTestCaseError] = useState<string | null>(null)
+  const [testCaseSuccessMsg, setTestCaseSuccessMsg] = useState<string | null>(null)
+  const [editingTestCaseId, setEditingTestCaseId] = useState<string | null>(null)
+  const [tcInput, setTcInput] = useState('')
+  const [tcExpectedOutput, setTcExpectedOutput] = useState('')
+  const [tcIsSample, setTcIsSample] = useState(false)
+  const [tcOrderIndex, setTcOrderIndex] = useState<number | ''>('')
+  const [submittingTestCase, setSubmittingTestCase] = useState(false)
+  const [deleteTestCaseConfirmId, setDeleteTestCaseConfirmId] = useState<string | null>(null)
+
+  const loadTestCasesForProblem = async (problemId: string) => {
+    setLoadingTestCases(true)
+    setTestCaseError(null)
+    try {
+      const list = await testCaseService.getProblemTestCases(problemId)
+      setTestCasesList(list)
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setTestCaseError(err.message)
+      } else {
+        setTestCaseError('Không thể tải danh sách test case!')
+      }
+    } finally {
+      setLoadingTestCases(false)
+    }
+  }
+
+  const handleOpenTestCases = async (prob: ProblemSummaryResponse) => {
+    setActiveTestCaseProblem(prob)
+    setTestCaseModalOpen(true)
+    setTestCaseError(null)
+    setTestCaseSuccessMsg(null)
+    handleCancelEditTestCase()
+    await loadTestCasesForProblem(prob.id)
+  }
+
+  const handleEditTestCaseClick = (tc: TestCaseResponse) => {
+    setEditingTestCaseId(tc.id)
+    setTcInput(tc.input || '')
+    setTcExpectedOutput(tc.expectedOutput || '')
+    setTcIsSample(tc.isSample)
+    setTcOrderIndex(tc.orderIndex)
+    setTestCaseError(null)
+  }
+
+  const handleCancelEditTestCase = () => {
+    setEditingTestCaseId(null)
+    setTcInput('')
+    setTcExpectedOutput('')
+    setTcIsSample(false)
+    setTcOrderIndex('')
+  }
+
+  const handleSaveTestCase = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!activeTestCaseProblem) return
+    setTestCaseError(null)
+
+    if (tcInput.trim() === '' && tcExpectedOutput.trim() === '') {
+      setTestCaseError('Vui lòng nhập dữ liệu đầu vào hoặc đầu ra mong muốn!')
+      return
+    }
+
+    setSubmittingTestCase(true)
+    try {
+      if (editingTestCaseId) {
+        const req: UpdateTestCaseRequest = {
+          input: tcInput,
+          expectedOutput: tcExpectedOutput,
+          isSample: tcIsSample,
+          orderIndex: typeof tcOrderIndex === 'number' ? tcOrderIndex : undefined,
+        }
+        await testCaseService.updateTestCase(editingTestCaseId, req)
+        setTestCaseSuccessMsg('Cập nhật test case thành công!')
+      } else {
+        const req: CreateTestCaseRequest = {
+          input: tcInput,
+          expectedOutput: tcExpectedOutput,
+          isSample: tcIsSample,
+          orderIndex: typeof tcOrderIndex === 'number' ? tcOrderIndex : undefined,
+        }
+        await testCaseService.createTestCase(activeTestCaseProblem.id, req)
+        setTestCaseSuccessMsg('Thêm test case mới thành công!')
+      }
+      handleCancelEditTestCase()
+      await loadTestCasesForProblem(activeTestCaseProblem.id)
+      setTimeout(() => setTestCaseSuccessMsg(null), 3000)
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setTestCaseError(err.message)
+      } else {
+        setTestCaseError('Lỗi khi lưu test case!')
+      }
+    } finally {
+      setSubmittingTestCase(false)
+    }
+  }
+
+  const handleDeleteTestCase = async (testCaseId: string) => {
+    if (!activeTestCaseProblem) return
+    setTestCaseError(null)
+    try {
+      await testCaseService.deleteTestCase(testCaseId)
+      setDeleteTestCaseConfirmId(null)
+      setTestCaseSuccessMsg('Đã xóa test case thành công!')
+      await loadTestCasesForProblem(activeTestCaseProblem.id)
+      setTimeout(() => setTestCaseSuccessMsg(null), 3000)
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setTestCaseError(err.message)
+      } else {
+        setTestCaseError('Lỗi khi xóa test case!')
+      }
+    }
+  }
 
   const fetchProblems = useCallback(async () => {
     setLoading(true)
@@ -566,6 +693,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onViewProblem }) => {
                                 onClick={() => handleOpenEdit(p)}
                               >
                                 Sửa
+                              </button>
+                              <button
+                                type="button"
+                                className="btn-action btn-action-testcase"
+                                title="Quản lý bộ test case của bài tập"
+                                onClick={() => handleOpenTestCases(p)}
+                              >
+                                Bộ Test
                               </button>
                               <select
                                 className="cf-input"
@@ -1049,6 +1184,262 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onViewProblem }) => {
                 onClick={handleDeleteProblem}
               >
                 Xóa bài tập
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Test Case Manager Modal */}
+      {testCaseModalOpen && activeTestCaseProblem && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal-box" style={{ maxWidth: '840px' }}>
+            <div className="admin-modal-header">
+              <div>
+                <div className="admin-modal-title">
+                  Quản lý Bộ Test: {activeTestCaseProblem.title}
+                </div>
+                <div style={{ fontSize: '11px', color: '#666', marginTop: '2px' }}>
+                  Mã bài: <code className="slug-code">{activeTestCaseProblem.slug}</code> | Tổng số test: <strong>{testCasesList.length}</strong>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="admin-modal-close"
+                onClick={() => {
+                  setTestCaseModalOpen(false)
+                  setActiveTestCaseProblem(null)
+                  handleCancelEditTestCase()
+                }}
+              >
+                Đóng
+              </button>
+            </div>
+
+            <div className="admin-modal-body">
+              {testCaseSuccessMsg && (
+                <div className="cf-notice cf-notice-success" style={{ marginBottom: '12px' }}>
+                  {testCaseSuccessMsg}
+                </div>
+              )}
+
+              {testCaseError && (
+                <div className="cf-notice cf-notice-error" style={{ marginBottom: '12px' }}>
+                  {testCaseError}
+                </div>
+              )}
+
+              {/* Section 1: Existing Test Cases List */}
+              <div style={{ marginBottom: '20px' }}>
+                <h4 style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#333' }}>
+                  Danh sách Test Cases hiện có ({testCasesList.length} test):
+                </h4>
+
+                {loadingTestCases ? (
+                  <div style={{ textAlign: 'center', padding: '16px', color: '#666' }}>
+                    Đang tải bộ test...
+                  </div>
+                ) : testCasesList.length === 0 ? (
+                  <div style={{ padding: '12px', background: '#f9f9f9', border: '1px dashed #ccc', textAlign: 'center', color: '#666' }}>
+                    Bài tập này chưa có test case nào. Hãy thêm test case bên dưới!
+                  </div>
+                ) : (
+                  <div className="table-responsive" style={{ maxHeight: '280px', overflowY: 'auto' }}>
+                    <table className="testcase-table">
+                      <thead>
+                        <tr>
+                          <th style={{ width: '40px', textAlign: 'center' }}>#</th>
+                          <th style={{ width: '130px', textAlign: 'center' }}>Loại test</th>
+                          <th>Đầu vào (Input)</th>
+                          <th>Đầu ra mong muốn (Expected Output)</th>
+                          <th style={{ width: '110px', textAlign: 'center' }}>Thao tác</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {testCasesList.map((tc) => (
+                          <tr key={tc.id} style={{ backgroundColor: editingTestCaseId === tc.id ? '#eef6ff' : undefined }}>
+                            <td style={{ textAlign: 'center', fontWeight: 'bold', color: '#555' }}>
+                              {tc.orderIndex}
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              {tc.isSample ? (
+                                <span className="badge-sample">Ví dụ (Sample)</span>
+                              ) : (
+                                <span className="badge-hidden">Ẩn (Hidden)</span>
+                              )}
+                            </td>
+                            <td>
+                              <pre className="testcase-code-preview">{tc.input || '(trống)'}</pre>
+                            </td>
+                            <td>
+                              <pre className="testcase-code-preview">{tc.expectedOutput || '(trống)'}</pre>
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                                <button
+                                  type="button"
+                                  className="btn-action btn-action-edit"
+                                  onClick={() => handleEditTestCaseClick(tc)}
+                                  title="Chỉnh sửa test case này"
+                                >
+                                  Sửa
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn-action btn-action-delete"
+                                  onClick={() => setDeleteTestCaseConfirmId(tc.id)}
+                                  title="Xóa test case này"
+                                >
+                                  Xóa
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Section 2: Form to Add / Edit Test Case */}
+              <div style={{ borderTop: '1px solid #e0e0e0', paddingTop: '16px' }}>
+                <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', color: editingTestCaseId ? '#1976d2' : '#2e7d32' }}>
+                  {editingTestCaseId ? `Chỉnh sửa Test Case #${tcOrderIndex}` : 'Thêm Test Case mới:'}
+                </h4>
+
+                <form onSubmit={handleSaveTestCase}>
+                  <div className="admin-form-grid">
+                    <div>
+                      <label className="admin-form-label">
+                        Đầu vào (Input Data):
+                      </label>
+                      <textarea
+                        className="cf-input source-textarea"
+                        rows={4}
+                        placeholder="Nhập input của test case (ví dụ: 4 9\n2 7 11 15)..."
+                        value={tcInput}
+                        onChange={(e) => setTcInput(e.target.value)}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="admin-form-label">
+                        Đầu ra mong muốn (Expected Output Data):
+                      </label>
+                      <textarea
+                        className="cf-input source-textarea"
+                        rows={4}
+                        placeholder="Nhập output mong muốn (ví dụ: 0 1)..."
+                        value={tcExpectedOutput}
+                        onChange={(e) => setTcExpectedOutput(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="form-group-full" style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                      <label className="checkbox-row" style={{ fontWeight: 'bold' }}>
+                        <input
+                          type="checkbox"
+                          checked={tcIsSample}
+                          onChange={(e) => setTcIsSample(e.target.checked)}
+                        />
+                        Đặt làm test ví dụ (Sample Case - Hiển thị công khai trên đề bài)
+                      </label>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <label className="admin-form-label" style={{ margin: 0 }}>Thứ tự (#):</label>
+                        <input
+                          type="number"
+                          className="cf-input"
+                          style={{ width: '70px', padding: '3px 6px' }}
+                          min={1}
+                          placeholder="Tự động"
+                          value={tcOrderIndex}
+                          onChange={(e) => setTcOrderIndex(e.target.value === '' ? '' : Number(e.target.value))}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                    <button
+                      type="submit"
+                      className="btn-cf btn-cf-primary"
+                      disabled={submittingTestCase}
+                    >
+                      {submittingTestCase
+                        ? 'Đang lưu...'
+                        : editingTestCaseId
+                        ? 'Lưu thay đổi Test Case'
+                        : 'Lưu Test Case này'}
+                    </button>
+
+                    {editingTestCaseId && (
+                      <button
+                        type="button"
+                        className="btn-cf"
+                        onClick={handleCancelEditTestCase}
+                      >
+                        Hủy chế độ sửa
+                      </button>
+                    )}
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <div className="admin-modal-footer">
+              <button
+                type="button"
+                className="btn-cf"
+                onClick={() => {
+                  setTestCaseModalOpen(false)
+                  setActiveTestCaseProblem(null)
+                  handleCancelEditTestCase()
+                }}
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Test Case Confirmation Modal */}
+      {deleteTestCaseConfirmId && (
+        <div className="admin-modal-overlay" style={{ zIndex: 1100 }}>
+          <div className="admin-modal-box" style={{ maxWidth: '400px' }}>
+            <div className="admin-modal-header">
+              <div className="admin-modal-title" style={{ color: '#d32f2f' }}>
+                Xác nhận xóa Test Case
+              </div>
+              <button
+                type="button"
+                className="admin-modal-close"
+                onClick={() => setDeleteTestCaseConfirmId(null)}
+              >
+                Đóng
+              </button>
+            </div>
+            <div className="admin-modal-body">
+              <p style={{ fontSize: '13px', lineHeight: '1.5' }}>
+                Bạn có chắc chắn muốn xóa test case này khỏi bộ test của bài tập không?
+              </p>
+            </div>
+            <div className="admin-modal-footer">
+              <button
+                type="button"
+                className="btn-cf"
+                onClick={() => setDeleteTestCaseConfirmId(null)}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                className="btn-cf btn-cf-danger"
+                onClick={() => handleDeleteTestCase(deleteTestCaseConfirmId)}
+              >
+                Xóa Test Case
               </button>
             </div>
           </div>
