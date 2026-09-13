@@ -12,7 +12,8 @@ import java.util.UUID;
 @Table(
         name = "submission_results",
         indexes = {
-                @Index(name = "idx_sub_results_submission_id", columnList = "submission_id")
+                @Index(name = "idx_sub_results_submission_id", columnList = "submission_id"),
+                @Index(name = "idx_sub_results_sub_test", columnList = "submission_id, test_case_id")
         }
 )
 @Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor

@@ -17,6 +17,7 @@ import java.util.UUID;
                 @Index(name = "idx_submissions_user_submitted", columnList = "user_id, submitted_at"),
                 @Index(name = "idx_submissions_problem_submitted", columnList = "problem_id, submitted_at"),
                 @Index(name = "idx_submissions_user_problem_verdict", columnList = "user_id, problem_id, verdict"),
+                @Index(name = "idx_submissions_prob_verdict_sub", columnList = "problem_id, verdict, submitted_at"),
                 @Index(name = "idx_submissions_status", columnList = "status")
         }
 )
