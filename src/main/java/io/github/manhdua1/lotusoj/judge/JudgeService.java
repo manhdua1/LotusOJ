@@ -16,6 +16,7 @@ import io.github.manhdua1.lotusoj.repository.problem.ProblemRepository;
 import io.github.manhdua1.lotusoj.repository.submission.SubmissionRepository;
 import io.github.manhdua1.lotusoj.repository.submission.SubmissionResultRepository;
 import io.github.manhdua1.lotusoj.service.problem.ProblemRedisService;
+import io.github.manhdua1.lotusoj.service.submission.SubmissionRedisService;
 import io.github.manhdua1.lotusoj.service.testCase.TestCaseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +42,7 @@ public class JudgeService {
     private final DockerExecutor dockerExecutor;
     private final SimpMessagingTemplate messagingTemplate;
     private final SubmissionMapper mapper;
+    private final SubmissionRedisService submissionRedisService;
 
     @Transactional
     public void judgeSubmission(UUID submissionId) {
@@ -184,6 +186,14 @@ public class JudgeService {
             }
         } catch (Exception e) {
             log.warn("Failed to update problem statistics for problem {}", submission.getProblem().getId(), e);
+        }
+
+        // Cache finished submission in Redis & evict recent list cache
+        try {
+            submissionRedisService.saveSubmission(mapper.toSubmissionResponse(submission));
+            submissionRedisService.evictRecentSubmissions();
+        } catch (Exception e) {
+            log.warn("Failed to update submission cache for submission {}", submission.getId(), e);
         }
 
         notifyClient(submission);

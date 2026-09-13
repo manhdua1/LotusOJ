@@ -13,6 +13,7 @@ import io.github.manhdua1.lotusoj.exception.ErrorCode;
 import io.github.manhdua1.lotusoj.mapper.SubmissionMapper;
 import io.github.manhdua1.lotusoj.repository.problem.ProblemRepository;
 import io.github.manhdua1.lotusoj.repository.submission.SubmissionRepository;
+import io.github.manhdua1.lotusoj.service.submission.SubmissionRedisService;
 import io.github.manhdua1.lotusoj.service.submission.SubmissionService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -44,6 +46,7 @@ public class SubmissionServiceImpl implements SubmissionService {
     ProblemRepository problemRepository;
     SubmissionMapper submissionMapper;
     RabbitTemplate rabbitTemplate;
+    SubmissionRedisService submissionRedisService;
 
     @Override
     @Transactional
@@ -100,16 +103,32 @@ public class SubmissionServiceImpl implements SubmissionService {
             log.info("Sent judge message for submission {} to RabbitMQ immediately", savedSubmission.getId());
         }
 
+        submissionRedisService.evictRecentSubmissions();
+
         return submissionMapper.toSubmissionResponse(savedSubmission);
     }
 
     @Override
     @Transactional(readOnly = true)
     public SubmissionResponse getSubmission(UUID id, User currentUser) {
+        // 1. Try cache first
+        Optional<SubmissionResponse> cached = submissionRedisService.getSubmission(id);
+        if (cached.isPresent()) {
+            return cached.get();
+        }
+
+        // 2. Query from database
         Submission submission = submissionRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.SUBMISSION_NOT_FOUND));
 
-        return submissionMapper.toSubmissionResponse(submission);
+        SubmissionResponse response = submissionMapper.toSubmissionResponse(submission);
+
+        // 3. Cache completed submissions (immutable results)
+        if (submission.getStatus() == SubmissionStatus.DONE || submission.getStatus() == SubmissionStatus.FAILED) {
+            submissionRedisService.saveSubmission(response);
+        }
+
+        return response;
     }
 
     @Override
@@ -153,6 +172,18 @@ public class SubmissionServiceImpl implements SubmissionService {
             SubmissionStatus status,
             Pageable pageable) {
 
+        boolean isDefaultRecent = (userId == null && (username == null || username.isBlank())
+                && problemId == null && (problemSlug == null || problemSlug.isBlank())
+                && language == null && verdict == null && status == null
+                && pageable.getPageNumber() == 0);
+
+        if (isDefaultRecent) {
+            Optional<PageResponse<SubmissionResponse>> cached = submissionRedisService.getRecentSubmissions();
+            if (cached.isPresent()) {
+                return cached.get();
+            }
+        }
+
         Specification<Submission> spec = SubmissionSpecification.filter(
                 userId,
                 username,
@@ -164,6 +195,12 @@ public class SubmissionServiceImpl implements SubmissionService {
         );
 
         Page<Submission> page = submissionRepository.findAll(spec, pageable);
-        return PageResponse.from(page.map(submissionMapper::toSubmissionResponse));
+        PageResponse<SubmissionResponse> response = PageResponse.from(page.map(submissionMapper::toSubmissionResponse));
+
+        if (isDefaultRecent) {
+            submissionRedisService.saveRecentSubmissions(response);
+        }
+
+        return response;
     }
 }

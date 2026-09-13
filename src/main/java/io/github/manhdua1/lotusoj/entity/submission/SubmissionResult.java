@@ -9,7 +9,12 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "submission_results")
+@Table(
+        name = "submission_results",
+        indexes = {
+                @Index(name = "idx_sub_results_submission_id", columnList = "submission_id")
+        }
+)
 @Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor
 public class SubmissionResult {
     @Id @GeneratedValue(strategy = GenerationType.UUID)
