@@ -1,7 +1,7 @@
 import React from 'react'
 import type { UserResponse } from '../types/auth'
 
-export type NavTab = 'login' | 'register' | 'home' | 'problemset' | 'problem-detail' | 'admin' | 'profile'
+export type NavTab = 'login' | 'register' | 'home' | 'problemset' | 'problem-detail' | 'admin' | 'profile' | 'submissions'
 
 interface HeaderProps {
   currentTab: NavTab | string
@@ -73,6 +73,16 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   type="button"
                   className="logout-btn"
+                  onClick={() => onNavigate('submissions')}
+                  style={{ color: '#1755a6', fontWeight: currentTab === 'submissions' ? 'bold' : 'normal' }}
+                  title="Xem bài nộp của bạn"
+                >
+                  Bài nộp
+                </button>
+                <span>|</span>
+                <button
+                  type="button"
+                  className="logout-btn"
                   onClick={() => onNavigate('profile')}
                   style={{ color: '#1755a6', fontWeight: currentTab === 'profile' ? 'bold' : 'normal' }}
                 >
@@ -129,6 +139,11 @@ export const Header: React.FC<HeaderProps> = ({
           <li className={`nav-item ${currentTab === 'problemset' || currentTab === 'problem-detail' ? 'active' : ''}`}>
             <button type="button" onClick={() => onNavigate('problemset')}>
               KHO BÀI TẬP
+            </button>
+          </li>
+          <li className={`nav-item ${currentTab === 'submissions' ? 'active' : ''}`}>
+            <button type="button" onClick={() => onNavigate('submissions')}>
+              BÀI NỘP
             </button>
           </li>
           <li className="nav-item">

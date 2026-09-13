@@ -7,6 +7,7 @@ import { ProblemList } from './components/ProblemList'
 import { ProblemDetail } from './components/ProblemDetail'
 import { AdminPanel } from './components/AdminPanel'
 import { UserProfile } from './components/UserProfile'
+import { SubmissionList } from './components/SubmissionList'
 import { authService } from './services/authService'
 import type { UserResponse } from './types/auth'
 import './App.css'
@@ -37,6 +38,8 @@ function App() {
         setCurrentTab('profile')
       } else if (hash === 'home' || hash === 'trang-chu') {
         setCurrentTab('problemset')
+      } else if (hash === 'submissions' || hash === 'bai-nop' || hash === 'status' || hash === 'my-submissions') {
+        setCurrentTab('submissions')
       } else if (hash.startsWith('problem/')) {
         const slug = hash.replace('problem/', '')
         if (slug) {
@@ -140,6 +143,12 @@ function App() {
             slug={selectedSlug}
             onBack={() => handleNavigate('problemset')}
             onSelectTag={handleSelectTag}
+          />
+        ) : currentTab === 'submissions' ? (
+          <SubmissionList
+            onSelectProblem={handleSelectProblem}
+            user={user}
+            onRequireLogin={() => handleNavigate('login')}
           />
         ) : currentTab === 'admin' ? (
           user?.role === 'ADMIN' || user?.role === 'PROBLEM_SETTER' ? (
