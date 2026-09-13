@@ -21,6 +21,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import io.github.manhdua1.lotusoj.dto.response.PageResponse;
+import io.github.manhdua1.lotusoj.entity.submission.Language;
+import io.github.manhdua1.lotusoj.entity.submission.Verdict;
+import io.github.manhdua1.lotusoj.repository.submission.SubmissionSpecification;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -68,14 +77,28 @@ public class SubmissionServiceImpl implements SubmissionService {
         Submission savedSubmission = submissionRepository.save(submission);
         log.info("Created submission {} for problem {} by user {}", savedSubmission.getId(), problem.getId(), user.getId());
 
-        // Push message to RabbitMQ for asynchronous judging
+        // Push message to RabbitMQ for asynchronous judging only after transaction commit
         SubmissionJudgeMessage message = new SubmissionJudgeMessage(savedSubmission.getId());
-        rabbitTemplate.convertAndSend(
-                RabbitMQConfig.SUBMISSION_EXCHANGE,
-                RabbitMQConfig.SUBMISSION_ROUTING_KEY,
-                message
-        );
-        log.info("Sent judge message for submission {} to RabbitMQ", savedSubmission.getId());
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    rabbitTemplate.convertAndSend(
+                            RabbitMQConfig.SUBMISSION_EXCHANGE,
+                            RabbitMQConfig.SUBMISSION_ROUTING_KEY,
+                            message
+                    );
+                    log.info("Sent judge message for submission {} to RabbitMQ after commit", savedSubmission.getId());
+                }
+            });
+        } else {
+            rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.SUBMISSION_EXCHANGE,
+                    RabbitMQConfig.SUBMISSION_ROUTING_KEY,
+                    message
+            );
+            log.info("Sent judge message for submission {} to RabbitMQ immediately", savedSubmission.getId());
+        }
 
         return submissionMapper.toSubmissionResponse(savedSubmission);
     }
@@ -87,5 +110,60 @@ public class SubmissionServiceImpl implements SubmissionService {
                 .orElseThrow(() -> new AppException(ErrorCode.SUBMISSION_NOT_FOUND));
 
         return submissionMapper.toSubmissionResponse(submission);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<SubmissionResponse> getMySubmissions(
+            User user,
+            UUID problemId,
+            String problemSlug,
+            Language language,
+            Verdict verdict,
+            SubmissionStatus status,
+            Pageable pageable) {
+
+        if (user == null) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+
+        Specification<Submission> spec = SubmissionSpecification.filter(
+                user.getId(),
+                null,
+                problemId,
+                problemSlug,
+                language,
+                verdict,
+                status
+        );
+
+        Page<Submission> page = submissionRepository.findAll(spec, pageable);
+        return PageResponse.from(page.map(submissionMapper::toSubmissionResponse));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<SubmissionResponse> getAllSubmissions(
+            UUID userId,
+            String username,
+            UUID problemId,
+            String problemSlug,
+            Language language,
+            Verdict verdict,
+            SubmissionStatus status,
+            Pageable pageable) {
+
+        Specification<Submission> spec = SubmissionSpecification.filter(
+                userId,
+                username,
+                problemId,
+                problemSlug,
+                language,
+                verdict,
+                status
+        );
+
+        Page<Submission> page = submissionRepository.findAll(spec, pageable);
+        return PageResponse.from(page.map(submissionMapper::toSubmissionResponse));
     }
 }

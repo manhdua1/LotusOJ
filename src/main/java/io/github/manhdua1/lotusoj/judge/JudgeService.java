@@ -9,6 +9,8 @@ import io.github.manhdua1.lotusoj.entity.submission.Verdict;
 import io.github.manhdua1.lotusoj.entity.testCase.TestCase;
 import io.github.manhdua1.lotusoj.judge.dto.CompileResult;
 import io.github.manhdua1.lotusoj.judge.dto.ExecutionResult;
+import io.github.manhdua1.lotusoj.exception.AppException;
+import io.github.manhdua1.lotusoj.exception.ErrorCode;
 import io.github.manhdua1.lotusoj.mapper.SubmissionMapper;
 import io.github.manhdua1.lotusoj.repository.problem.ProblemRepository;
 import io.github.manhdua1.lotusoj.repository.submission.SubmissionRepository;
@@ -44,8 +46,15 @@ public class JudgeService {
     public void judgeSubmission(UUID submissionId) {
         Submission submission = submissionRepository.findById(submissionId).orElse(null);
         if (submission == null) {
-            log.warn("Submission not found for judging: {}", submissionId);
-            return;
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ignored) {}
+            submission = submissionRepository.findById(submissionId).orElse(null);
+        }
+
+        if (submission == null) {
+            log.error("Submission not found for judging: {}", submissionId);
+            throw new AppException(ErrorCode.SUBMISSION_NOT_FOUND);
         }
 
         submission.setStatus(SubmissionStatus.JUDGING);

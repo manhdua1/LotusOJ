@@ -122,6 +122,7 @@ public class DockerExecutor {
 
         ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.redirectErrorStream(false);
+        long startTime = System.currentTimeMillis();
         Process process = pb.start();
 
         // Write input to stdin
@@ -159,6 +160,9 @@ public class DockerExecutor {
         stdoutThread.join(2000);
         stderrThread.join(2000);
 
+        long elapsedMs = System.currentTimeMillis() - startTime;
+        int executionRuntimeMs = (int) Math.min(elapsedMs, (long) timeLimitMs);
+
         if (!finished) {
             process.destroyForcibly();
             return ExecutionResult.builder()
@@ -176,6 +180,7 @@ public class DockerExecutor {
         if (exitCode == 137) {
             return ExecutionResult.builder()
                     .verdict(Verdict.MEMORY_LIMIT_EXCEEDED)
+                    .runtimeMs(executionRuntimeMs)
                     .errorMessage("Process killed: memory limit exceeded (OOM)")
                     .build();
         }
@@ -193,6 +198,7 @@ public class DockerExecutor {
         if (stdout.length() >= OUTPUT_LIMIT_BYTES) {
             return ExecutionResult.builder()
                     .verdict(Verdict.OUTPUT_LIMIT_EXCEEDED)
+                    .runtimeMs(executionRuntimeMs)
                     .output(stdout.substring(0, 1024))
                     .errorMessage("Output exceeded " + OUTPUT_LIMIT_BYTES + " bytes")
                     .build();
@@ -202,6 +208,7 @@ public class DockerExecutor {
         if (exitCode != 0) {
             return ExecutionResult.builder()
                     .verdict(Verdict.RUNTIME_ERROR)
+                    .runtimeMs(executionRuntimeMs)
                     .output(stdout)
                     .errorMessage(stderr.length() > 2048 ? stderr.substring(0, 2048) : stderr)
                     .build();
@@ -210,6 +217,7 @@ public class DockerExecutor {
         // Success – caller will compare output with expected answer
         return ExecutionResult.builder()
                 .verdict(Verdict.ACCEPTED)
+                .runtimeMs(executionRuntimeMs)
                 .output(stdout)
                 .build();
     }
@@ -254,7 +262,7 @@ public class DockerExecutor {
     private String getDockerImage(Language language) {
         return switch (language) {
             case CPP, C -> "gcc:13.2";
-            case JAVA -> "openjdk:17-slim";
+            case JAVA -> "eclipse-temurin:17-jdk-alpine";
             case PYTHON -> "python:3.11-slim";
             case CSHARP -> "mcr.microsoft.com/dotnet/sdk:8.0";
         };
@@ -302,6 +310,9 @@ public class DockerExecutor {
     private List<String> buildRunCommand(Language language, Path workDir,
                                          int timeLimitMs, int memoryLimitKb) {
         long memoryBytes = (long) memoryLimitKb * 1024;
+        long containerMemoryBytes = (language == Language.JAVA)
+                ? memoryBytes + 128L * 1024 * 1024 // Add 128MB overhead for JVM metaspace & runtime
+                : memoryBytes;
         int timeLimitSeconds = Math.max(1, (timeLimitMs + 999) / 1000); // round up
 
         List<String> cmd = new ArrayList<>();
@@ -310,8 +321,8 @@ public class DockerExecutor {
         cmd.add("--rm");
         cmd.add("-i");                                      // interactive (stdin)
         cmd.add("--network=none");                          // no network access
-        cmd.add("--memory=" + memoryBytes);                 // memory limit
-        cmd.add("--memory-swap=" + memoryBytes);            // no swap
+        cmd.add("--memory=" + containerMemoryBytes);        // memory limit
+        cmd.add("--memory-swap=" + containerMemoryBytes);   // no swap
         cmd.add("--cpus=1");                                // single CPU
         cmd.add("--pids-limit=64");                         // limit process forks
         cmd.add("--read-only");                             // read-only root filesystem
