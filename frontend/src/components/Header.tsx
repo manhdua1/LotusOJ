@@ -1,5 +1,7 @@
 import React from 'react'
 import type { UserResponse } from '../types/auth'
+import { useTheme } from '../context/useTheme'
+import { IconSun, IconMoon } from './Icons'
 
 export type NavTab = 'login' | 'register' | 'home' | 'problemset' | 'problem-detail' | 'admin' | 'profile' | 'submissions'
 
@@ -16,6 +18,8 @@ export const Header: React.FC<HeaderProps> = ({
   user,
   onLogout,
 }) => {
+  const { theme, toggleTheme } = useTheme()
+
   return (
     <header className="site-header">
       {/* Top Bar */}
@@ -46,6 +50,18 @@ export const Header: React.FC<HeaderProps> = ({
         </a>
 
         <div className="header-meta">
+          <div className="header-theme-toggle">
+            <button
+              type="button"
+              className="header-theme-btn"
+              onClick={toggleTheme}
+              title={theme === 'dark' ? 'Chuyển sang giao diện Sáng' : 'Chuyển sang giao diện Tối'}
+            >
+              {theme === 'dark' ? <IconSun size={13} /> : <IconMoon size={13} />}
+              <span>{theme === 'dark' ? 'Sáng' : 'Tối'}</span>
+            </button>
+          </div>
+
           <div className="header-lang">
             <span style={{ color: '#555' }}>Ngôn ngữ: </span>
             <span style={{ fontWeight: 'bold', color: '#111' }}>Tiếng Việt</span>

@@ -177,7 +177,7 @@ export const SubmissionList: React.FC<SubmissionListProps> = ({
             }}
             title={sub.compileErrorLog ? 'Nhấn để xem chi tiết log lỗi biên dịch' : 'Compilation Error'}
           >
-            Compilation Error {sub.compileErrorLog && '🔍'}
+            Compilation Error {sub.compileErrorLog && '(Xem chi tiết)'}
           </button>
         )
       case 'RUNTIME_ERROR':
@@ -535,7 +535,7 @@ export const SubmissionList: React.FC<SubmissionListProps> = ({
                 }}
                 onClick={() => setSelectedErrorLog(null)}
               >
-                ✕
+                &times;
               </button>
             </div>
             <div
@@ -577,7 +577,7 @@ export const SubmissionList: React.FC<SubmissionListProps> = ({
                   className="btn-cf"
                   onClick={handleCopyErrorLog}
                 >
-                  {copiedLog ? '✓ Đã sao chép' : 'Sao chép log lỗi'}
+                  {copiedLog ? 'Đã sao chép' : 'Sao chép log lỗi'}
                 </button>
                 <button
                   type="button"

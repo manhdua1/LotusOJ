@@ -120,10 +120,38 @@ a:hover {
   text-align: right;
   font-size: 11px;
   color: #555;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.header-theme-toggle {
+  margin-bottom: 2px;
+}
+
+.header-theme-btn {
+  background-color: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  border-radius: 4px;
+  padding: 2px 7px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+}
+
+.header-theme-btn:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
 }
 
 .header-lang {
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .header-lang a {
@@ -1019,12 +1047,12 @@ a:hover {
 
 .problem-columns-grid {
   display: grid;
-  grid-template-columns: 1fr 280px;
+  grid-template-columns: minmax(0, 1fr) 380px;
   gap: 16px;
   align-items: start;
 }
 
-@media (max-width: 860px) {
+@media (max-width: 960px) {
   .problem-columns-grid {
     grid-template-columns: 1fr;
   }
@@ -1635,5 +1663,1284 @@ a:hover {
   gap: 10px;
   background-color: #f7f9fa;
 }
+
+/* =========================================================
+   LeetCode Style Live Code Editor & Workspace
+   ========================================================= */
+
+.leetcode-workspace {
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 120px);
+  min-height: 640px;
+  transition: all 0.2s ease;
+}
+
+.leetcode-workspace.is-fullscreen-mode {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  height: 100vh;
+  border-radius: 0;
+  border: none;
+}
+
+/* Navbar */
+.leetcode-navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+  height: 46px;
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.leetcode-navbar-left,
+.leetcode-navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.leetcode-back-btn {
+  background: none;
+  border: 1px solid #cbd5e1;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.leetcode-back-btn:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+.leetcode-nav-sep {
+  color: #cbd5e1;
+}
+
+.leetcode-problem-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.leetcode-diff-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  letter-spacing: 0.3px;
+}
+
+.leetcode-diff-easy {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.leetcode-diff-medium {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+.leetcode-diff-hard {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.leetcode-nav-btn {
+  background-color: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  border-radius: 4px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.leetcode-nav-btn:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+.leetcode-btn-submit {
+  background-color: #2cbb5d !important;
+  color: #ffffff !important;
+  border-color: #26a350 !important;
+}
+
+.leetcode-btn-submit:hover:not(:disabled) {
+  background-color: #26a350 !important;
+}
+
+.leetcode-btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Split Workspace Body */
+.leetcode-split-body {
+  display: grid;
+  grid-template-columns: 46% 54%;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background-color: #f8fafc;
+}
+
+@media (max-width: 960px) {
+  .leetcode-split-body {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+}
+
+/* Left Pane: Problem Description */
+.leetcode-problem-pane {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.leetcode-pane-tabs {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  height: 40px;
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+  gap: 6px;
+}
+
+.leetcode-tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.leetcode-tab-btn:hover {
+  color: #1e293b;
+}
+
+.leetcode-tab-btn.active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+  background-color: #ffffff;
+  border-radius: 4px 4px 0 0;
+}
+
+.leetcode-pane-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 20px 24px;
+}
+
+.leetcode-title-block {
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+}
+
+.leetcode-main-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 10px 0;
+}
+
+.leetcode-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.leetcode-meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #475569;
+  background-color: #f1f5f9;
+  padding: 3px 9px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+}
+
+.leetcode-content-section {
+  margin-bottom: 20px;
+}
+
+.leetcode-section-heading {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 16px 0 8px 0;
+  letter-spacing: 0.2px;
+}
+
+.leetcode-text-content {
+  font-size: 13px;
+  line-height: 1.65;
+  color: #334155;
+}
+
+.leetcode-constraints-box {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-left: 3px solid #3b82f6;
+  border-radius: 4px;
+  padding: 10px 14px;
+}
+
+.leetcode-constraint-item {
+  font-size: 12.5px;
+  font-family: Consolas, monospace;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.leetcode-constraint-item:last-child {
+  margin-bottom: 0;
+}
+
+.leetcode-sample-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 14px;
+  background-color: #ffffff;
+}
+
+.leetcode-sample-head {
+  background-color: #f8fafc;
+  padding: 6px 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #475569;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.leetcode-sample-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background-color: #ffffff;
+}
+
+@media (max-width: 600px) {
+  .leetcode-sample-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+.leetcode-sample-col {
+  padding: 10px 12px;
+}
+
+.leetcode-sample-col:first-child {
+  border-right: 1px solid #e2e8f0;
+}
+
+.leetcode-sample-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.leetcode-code-snippet {
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-family: "JetBrains Mono", Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #0f172a;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.leetcode-copy-icon-btn {
+  background: none;
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.leetcode-copy-icon-btn:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+/* Testcases Tab in Problem Pane */
+.leetcode-case-pills {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.leetcode-case-pill {
+  background-color: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.leetcode-case-pill.active {
+  background-color: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+.leetcode-case-block {
+  margin-bottom: 12px;
+}
+
+.leetcode-case-block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+/* Info Tab */
+.leetcode-info-area {
+  padding: 8px 0;
+}
+
+.leetcode-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.leetcode-info-label {
+  font-weight: 600;
+  color: #475569;
+  font-size: 12.5px;
+}
+
+.leetcode-slug-badge {
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: Consolas, monospace;
+  font-size: 12px;
+  color: #0f172a;
+}
+
+.leetcode-info-strong {
+  font-weight: 700;
+  color: #16a34a;
+  font-size: 13px;
+}
+
+.leetcode-info-tags {
+  padding-top: 14px;
+}
+
+/* Right Pane: Code Editor & Console (Default: Light Theme, matching LotusOJ) */
+.leetcode-editor-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  background-color: #ffffff;
+}
+
+.leetcode-lang-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 40px;
+  padding: 0 14px;
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.leetcode-lang-selector-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.leetcode-lang-title {
+  font-size: 11.5px;
+  color: #475569;
+  font-weight: 500;
+}
+
+.leetcode-lang-dropdown {
+  background-color: #ffffff;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+}
+
+.leetcode-lang-dropdown:focus {
+  border-color: #2563eb;
+}
+
+.leetcode-lang-shortcut-hint {
+  font-size: 11px;
+  color: #64748b;
+}
+
+/* Monaco Live Editor Styles */
+.leetcode-monaco-wrapper {
+  flex: 1;
+  min-height: 240px;
+  overflow: hidden;
+  position: relative;
+  background-color: #ffffff;
+}
+
+.leetcode-editor-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.leetcode-editor-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 12px;
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.leetcode-editor-toolbar-left,
+.leetcode-editor-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.leetcode-editor-lang-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px;
+  background-color: #e2e8f0;
+  color: #334155;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 10.5px;
+}
+
+.leetcode-editor-lang-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #22c55e;
+}
+
+.leetcode-toolbar-btn {
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 7px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.leetcode-toolbar-btn:hover:not(:disabled) {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+
+.leetcode-toolbar-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.leetcode-toolbar-btn-danger:hover:not(:disabled) {
+  background-color: #fee2e2;
+  border-color: #fca5a5;
+  color: #dc2626;
+}
+
+.leetcode-toolbar-btn-accent {
+  border-color: #93c5fd;
+  color: #2563eb;
+}
+
+.leetcode-toolbar-btn-accent:hover:not(:disabled) {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+}
+
+.leetcode-toolbar-select {
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  border-radius: 3px;
+  padding: 2px 5px;
+  font-size: 11px;
+  cursor: pointer;
+  outline: none;
+}
+
+.leetcode-editor-main {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+.leetcode-editor-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 100%;
+  color: #64748b;
+  font-size: 12px;
+  background-color: #f8fafc;
+}
+
+.leetcode-editor-statusbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 12px;
+  background-color: #1755a6;
+  color: #ffffff;
+  font-size: 10.5px;
+  font-family: Consolas, "Courier New", monospace;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.leetcode-statusbar-left,
+.leetcode-statusbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.leetcode-status-sep {
+  opacity: 0.5;
+}
+
+.leetcode-theme-badge {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 9.5px;
+}
+
+/* LeetCode Bottom Console Drawer (Light Default) */
+.leetcode-console-drawer {
+  background-color: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  max-height: 250px;
+  min-height: 160px;
+  flex-shrink: 0;
+}
+
+.leetcode-console-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 38px;
+  padding: 0 12px;
+  background-color: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.leetcode-console-tabs-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.leetcode-console-tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.leetcode-console-tab-btn:hover {
+  color: #0f172a;
+}
+
+.leetcode-console-tab-btn.active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+  background-color: #f8fafc;
+}
+
+.leetcode-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.dot-success {
+  background-color: #22c55e;
+}
+
+.dot-danger {
+  background-color: #ef4444;
+}
+
+.dot-pending {
+  background-color: #38bdf8;
+}
+
+.leetcode-btn-submit-main {
+  background-color: #2cbb5d;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.leetcode-btn-submit-main:hover:not(:disabled) {
+  background-color: #26a350;
+  box-shadow: 0 2px 6px rgba(44, 187, 93, 0.4);
+}
+
+.leetcode-btn-submit-main:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.leetcode-console-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 16px;
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+/* Verdict Banners */
+.verdict-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 13.5px;
+  margin-bottom: 12px;
+}
+
+.verdict-accepted {
+  background-color: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.verdict-rejected {
+  background-color: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.verdict-warning {
+  background-color: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.verdict-compile-err {
+  background-color: rgba(168, 85, 247, 0.12);
+  color: #9333ea;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.verdict-pending {
+  background-color: rgba(56, 189, 248, 0.12);
+  color: #0284c7;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.verdict-judging {
+  background-color: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.verdict-mark {
+  font-family: Consolas, monospace;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+/* Stats Row */
+.leetcode-stats-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.leetcode-stat-box {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 6px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 120px;
+}
+
+.leetcode-stat-label {
+  font-size: 10.5px;
+  color: #64748b;
+}
+
+.leetcode-stat-val {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  font-family: Consolas, monospace;
+}
+
+.stat-green {
+  color: #16a34a !important;
+}
+
+.leetcode-compile-log-box {
+  margin-top: 10px;
+}
+
+.leetcode-compile-log-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #dc2626;
+  margin-bottom: 4px;
+}
+
+.leetcode-compile-log-pre {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  padding: 10px;
+  border-radius: 4px;
+  font-family: Consolas, monospace;
+  font-size: 11.5px;
+  line-height: 1.45;
+  max-height: 140px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+}
+
+.leetcode-empty-console {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 90px;
+  color: #64748b;
+  font-size: 12px;
+  text-align: center;
+  padding: 16px;
+}
+
+.leetcode-alert-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #b91c1c;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+
+.leetcode-loading-container,
+.leetcode-error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 360px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  padding: 40px 20px;
+  font-size: 13.5px;
+  color: #475569;
+}
+
+.leetcode-btn-secondary {
+  background-color: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  border-radius: 4px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.leetcode-btn-secondary:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+/* Helper spinner animation */
+.icon-spin {
+  animation: iconSpin 1s linear infinite;
+}
+
+@keyframes iconSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* =========================================================
+   SYNCHRONIZED DARK THEME OVERRIDES (when [data-theme="dark"])
+   ========================================================= */
+
+[data-theme="dark"] body {
+  background-color: #0b0f17;
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .page-container {
+  background-color: #111827;
+  border-color: #1f2937;
+  box-shadow: 0 0 16px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .site-header {
+  border-bottom-color: #1f2937;
+}
+
+[data-theme="dark"] .brand-part1 {
+  color: #60a5fa;
+}
+
+[data-theme="dark"] .brand-subtitle {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .header-theme-btn {
+  background-color: #1f2937;
+  border-color: #374151;
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .header-theme-btn:hover {
+  background-color: #374151;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .header-lang span {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .main-menu {
+  background-color: #1f2937;
+}
+
+[data-theme="dark"] .main-menu ul li a {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .main-menu ul li.current a {
+  background-color: #111827;
+  color: #60a5fa;
+}
+
+[data-theme="dark"] .roundbox {
+  background-color: #111827;
+  border-color: #1f2937;
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .caption {
+  background-color: #0b0f17;
+  border-bottom-color: #1f2937;
+  color: #f1f5f9;
+}
+
+/* Workspace Dark Mode */
+[data-theme="dark"] .leetcode-workspace {
+  background-color: #111827;
+  border-color: #1f2937;
+}
+
+[data-theme="dark"] .leetcode-navbar {
+  background-color: #0b0f17;
+  border-bottom-color: #1f2937;
+}
+
+[data-theme="dark"] .leetcode-back-btn {
+  border-color: #374151;
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .leetcode-back-btn:hover {
+  background-color: #1f2937;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .leetcode-nav-sep {
+  color: #4b5563;
+}
+
+[data-theme="dark"] .leetcode-problem-title {
+  color: #f9fafb;
+}
+
+[data-theme="dark"] .leetcode-problem-pane {
+  background-color: #111827;
+  border-right-color: #1f2937;
+}
+
+[data-theme="dark"] .leetcode-pane-tabs {
+  background-color: #0b0f17;
+  border-bottom-color: #1f2937;
+}
+
+[data-theme="dark"] .leetcode-tab-btn {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .leetcode-tab-btn:hover {
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .leetcode-tab-btn.active {
+  background-color: #111827;
+  color: #38bdf8;
+  border-bottom-color: #38bdf8;
+}
+
+[data-theme="dark"] .leetcode-pane-content {
+  background-color: #111827;
+}
+
+[data-theme="dark"] .leetcode-title-block {
+  border-bottom-color: #1f2937;
+}
+
+[data-theme="dark"] .leetcode-main-title {
+  color: #f9fafb;
+}
+
+[data-theme="dark"] .leetcode-meta-pill {
+  background-color: #0b0f17;
+  border-color: #1f2937;
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .leetcode-section-heading {
+  color: #93c5fd;
+}
+
+[data-theme="dark"] .leetcode-text-content {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .leetcode-constraints-box {
+  background-color: #0b0f17;
+  border-color: #1f2937;
+  border-left-color: #38bdf8;
+}
+
+[data-theme="dark"] .leetcode-constraint-item {
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .leetcode-sample-card {
+  border-color: #1f2937;
+  background-color: #111827;
+}
+
+[data-theme="dark"] .leetcode-sample-head {
+  background-color: #0b0f17;
+  border-bottom-color: #1f2937;
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .leetcode-sample-body {
+  background-color: #111827;
+}
+
+[data-theme="dark"] .leetcode-sample-col:first-child {
+  border-right-color: #1f2937;
+}
+
+[data-theme="dark"] .leetcode-sample-label {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .leetcode-code-snippet {
+  background-color: #0b0f17;
+  border-color: #1f2937;
+  color: #38bdf8;
+}
+
+[data-theme="dark"] .leetcode-copy-icon-btn {
+  border-color: #374151;
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .leetcode-copy-icon-btn:hover {
+  background-color: #1f2937;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .leetcode-case-pill {
+  background-color: #1f2937;
+  border-color: #374151;
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .leetcode-case-pill.active {
+  background-color: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+[data-theme="dark"] .leetcode-info-row {
+  border-bottom-color: #1f2937;
+}
+
+[data-theme="dark"] .leetcode-info-label {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .leetcode-slug-badge {
+  background-color: #0b0f17;
+  border-color: #1f2937;
+  color: #e2e8f0;
+}
+
+/* Editor Pane Dark Mode */
+[data-theme="dark"] .leetcode-editor-pane {
+  background-color: #1e1e1e;
+}
+
+[data-theme="dark"] .leetcode-lang-header {
+  background-color: #252526;
+  border-bottom-color: #333333;
+}
+
+[data-theme="dark"] .leetcode-lang-title {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .leetcode-lang-dropdown {
+  background-color: #1e1e1e;
+  color: #f1f5f9;
+  border-color: #3e3e42;
+}
+
+[data-theme="dark"] .leetcode-lang-shortcut-hint {
+  color: #64748b;
+}
+
+[data-theme="dark"] .leetcode-monaco-wrapper {
+  background-color: #1e1e1e;
+}
+
+[data-theme="dark"] .leetcode-editor-toolbar {
+  background-color: #1e1e1e;
+  border-bottom-color: #2d2d2d;
+}
+
+[data-theme="dark"] .leetcode-editor-lang-tag {
+  background-color: #2d3748;
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .leetcode-toolbar-btn {
+  background-color: transparent;
+  border-color: #3d3d3d;
+  color: #cccccc;
+}
+
+[data-theme="dark"] .leetcode-toolbar-btn:hover:not(:disabled) {
+  background-color: #2d2d2d;
+  color: #ffffff;
+  border-color: #555555;
+}
+
+[data-theme="dark"] .leetcode-toolbar-select {
+  background-color: #252526;
+  border-color: #3d3d3d;
+  color: #cccccc;
+}
+
+[data-theme="dark"] .leetcode-editor-loading {
+  background-color: #1e1e1e;
+  color: #888888;
+}
+
+[data-theme="dark"] .leetcode-console-drawer {
+  background-color: #252526;
+  border-top-color: #333333;
+}
+
+[data-theme="dark"] .leetcode-console-nav {
+  background-color: #1e1e1e;
+  border-bottom-color: #333333;
+}
+
+[data-theme="dark"] .leetcode-console-tab-btn {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .leetcode-console-tab-btn:hover {
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .leetcode-console-tab-btn.active {
+  color: #f1f5f9;
+  border-bottom-color: #38bdf8;
+  background-color: transparent;
+}
+
+[data-theme="dark"] .leetcode-console-body {
+  background-color: #1e1e1e;
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .leetcode-stat-box {
+  background-color: #252526;
+  border-color: #383838;
+}
+
+[data-theme="dark"] .leetcode-stat-label {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .leetcode-stat-val {
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .leetcode-compile-log-pre {
+  background-color: #181818;
+  border-color: #3a2222;
+  color: #fca5a5;
+}
+
+[data-theme="dark"] .leetcode-empty-console {
+  color: #94a3b8;
+}
+
+
+
 
 
