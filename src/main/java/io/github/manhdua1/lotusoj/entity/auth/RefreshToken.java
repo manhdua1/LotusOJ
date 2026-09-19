@@ -8,7 +8,13 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Table(name = "refresh_tokens")
+@Table(
+        name = "refresh_tokens",
+        indexes = {
+                @Index(name = "idx_refresh_tokens_user_id", columnList = "user_id, revoked"),
+                @Index(name = "idx_refresh_tokens_expires_at", columnList = "expires_at")
+        }
+)
 @Entity
 @Builder
 @Getter

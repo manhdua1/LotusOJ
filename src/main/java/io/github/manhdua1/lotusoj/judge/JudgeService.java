@@ -9,11 +9,14 @@ import io.github.manhdua1.lotusoj.entity.submission.Verdict;
 import io.github.manhdua1.lotusoj.entity.testCase.TestCase;
 import io.github.manhdua1.lotusoj.judge.dto.CompileResult;
 import io.github.manhdua1.lotusoj.judge.dto.ExecutionResult;
+import io.github.manhdua1.lotusoj.exception.AppException;
+import io.github.manhdua1.lotusoj.exception.ErrorCode;
 import io.github.manhdua1.lotusoj.mapper.SubmissionMapper;
 import io.github.manhdua1.lotusoj.repository.problem.ProblemRepository;
 import io.github.manhdua1.lotusoj.repository.submission.SubmissionRepository;
 import io.github.manhdua1.lotusoj.repository.submission.SubmissionResultRepository;
 import io.github.manhdua1.lotusoj.service.problem.ProblemRedisService;
+import io.github.manhdua1.lotusoj.service.submission.SubmissionRedisService;
 import io.github.manhdua1.lotusoj.service.testCase.TestCaseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,13 +42,21 @@ public class JudgeService {
     private final DockerExecutor dockerExecutor;
     private final SimpMessagingTemplate messagingTemplate;
     private final SubmissionMapper mapper;
+    private final SubmissionRedisService submissionRedisService;
 
     @Transactional
     public void judgeSubmission(UUID submissionId) {
         Submission submission = submissionRepository.findById(submissionId).orElse(null);
         if (submission == null) {
-            log.warn("Submission not found for judging: {}", submissionId);
-            return;
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ignored) {}
+            submission = submissionRepository.findById(submissionId).orElse(null);
+        }
+
+        if (submission == null) {
+            log.error("Submission not found for judging: {}", submissionId);
+            throw new AppException(ErrorCode.SUBMISSION_NOT_FOUND);
         }
 
         submission.setStatus(SubmissionStatus.JUDGING);
@@ -175,6 +186,14 @@ public class JudgeService {
             }
         } catch (Exception e) {
             log.warn("Failed to update problem statistics for problem {}", submission.getProblem().getId(), e);
+        }
+
+        // Cache finished submission in Redis & evict recent list cache
+        try {
+            submissionRedisService.saveSubmission(mapper.toSubmissionResponse(submission));
+            submissionRedisService.evictRecentSubmissions();
+        } catch (Exception e) {
+            log.warn("Failed to update submission cache for submission {}", submission.getId(), e);
         }
 
         notifyClient(submission);

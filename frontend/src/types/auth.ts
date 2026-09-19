@@ -11,14 +11,16 @@ export interface RegisterRequest {
 }
 
 export interface UserResponse {
-  id?: string | number
+  id?: string
   username: string
   email: string
   role?: string
+  status?: string
   avatarUrl?: string
-  rating?: number
-  rank?: string
+  totalSolved?: number
+  totalSubmissions?: number
   createdAt?: string
+  updatedAt?: string
 }
 
 export interface ApiResponse<T> {

@@ -1,14 +1,15 @@
-import React, { useState } from 'react'
+import React from 'react'
 import type { UserResponse } from '../types/auth'
+import { useTheme } from '../context/useTheme'
+import { IconSun, IconMoon } from './Icons'
 
-export type NavTab = 'login' | 'register' | 'home' | 'problemset' | 'problem-detail' | 'admin'
+export type NavTab = 'login' | 'register' | 'home' | 'problemset' | 'problem-detail' | 'admin' | 'profile' | 'submissions'
 
 interface HeaderProps {
   currentTab: NavTab | string
   onNavigate: (tab: NavTab) => void
   user: UserResponse | null
   onLogout: () => void
-  onSearchProblem?: (keyword: string) => void
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -16,19 +17,8 @@ export const Header: React.FC<HeaderProps> = ({
   onNavigate,
   user,
   onLogout,
-  onSearchProblem,
 }) => {
-  const [headerSearch, setHeaderSearch] = useState('')
-
-  const handleSearchSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      if (onSearchProblem) {
-        onSearchProblem(headerSearch)
-      }
-      onNavigate('problemset')
-    }
-  }
+  const { theme, toggleTheme } = useTheme()
 
   return (
     <header className="site-header">
@@ -60,6 +50,18 @@ export const Header: React.FC<HeaderProps> = ({
         </a>
 
         <div className="header-meta">
+          <div className="header-theme-toggle">
+            <button
+              type="button"
+              className="header-theme-btn"
+              onClick={toggleTheme}
+              title={theme === 'dark' ? 'Chuyển sang giao diện Sáng' : 'Chuyển sang giao diện Tối'}
+            >
+              {theme === 'dark' ? <IconSun size={13} /> : <IconMoon size={13} />}
+              <span>{theme === 'dark' ? 'Sáng' : 'Tối'}</span>
+            </button>
+          </div>
+
           <div className="header-lang">
             <span style={{ color: '#555' }}>Ngôn ngữ: </span>
             <span style={{ fontWeight: 'bold', color: '#111' }}>Tiếng Việt</span>
@@ -69,7 +71,39 @@ export const Header: React.FC<HeaderProps> = ({
             {user ? (
               <div className="header-user-info">
                 <span>Xin chào,</span>
-                <span className="user-handle specialist">{user.username}</span>
+                <button
+                  type="button"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    cursor: 'pointer',
+                    font: 'inherit',
+                  }}
+                  onClick={() => onNavigate('profile')}
+                  title="Xem hồ sơ cá nhân"
+                >
+                  <strong className="user-handle specialist">{user.username}</strong>
+                </button>
+                <span>|</span>
+                <button
+                  type="button"
+                  className="logout-btn"
+                  onClick={() => onNavigate('submissions')}
+                  style={{ color: '#1755a6', fontWeight: currentTab === 'submissions' ? 'bold' : 'normal' }}
+                  title="Xem bài nộp của bạn"
+                >
+                  Bài nộp
+                </button>
+                <span>|</span>
+                <button
+                  type="button"
+                  className="logout-btn"
+                  onClick={() => onNavigate('profile')}
+                  style={{ color: '#1755a6', fontWeight: currentTab === 'profile' ? 'bold' : 'normal' }}
+                >
+                  Hồ sơ
+                </button>
                 <span>|</span>
                 <button
                   type="button"
@@ -123,6 +157,11 @@ export const Header: React.FC<HeaderProps> = ({
               KHO BÀI TẬP
             </button>
           </li>
+          <li className={`nav-item ${currentTab === 'submissions' ? 'active' : ''}`}>
+            <button type="button" onClick={() => onNavigate('submissions')}>
+              BÀI NỘP
+            </button>
+          </li>
           <li className="nav-item">
             <button type="button" onClick={(e) => e.preventDefault()}>
               KỲ THI
@@ -139,17 +178,6 @@ export const Header: React.FC<HeaderProps> = ({
             </li>
           )}
         </ul>
-
-        <div className="nav-search">
-          <input
-            type="text"
-            placeholder="Tìm kiếm bài tập..."
-            aria-label="Tìm kiếm bài tập"
-            value={headerSearch}
-            onChange={(e) => setHeaderSearch(e.target.value)}
-            onKeyDown={handleSearchSubmit}
-          />
-        </div>
       </nav>
     </header>
   )

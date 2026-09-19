@@ -11,7 +11,13 @@ import java.util.Set;
 import java.util.UUID;
 
 @Entity
-@Table(name = "problems")
+@Table(
+        name = "problems",
+        indexes = {
+                @Index(name = "idx_problems_status_deleted_created", columnList = "is_deleted, status, created_at"),
+                @Index(name = "idx_problems_difficulty", columnList = "is_deleted, status, difficulty, created_at")
+        }
+)
 @Getter
 @Setter
 @Builder

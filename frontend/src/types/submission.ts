@@ -21,10 +21,18 @@ export interface SubmissionRequest {
 export interface SubmissionResponse {
   id: string
   problemId: string
+  problemTitle?: string
+  problemSlug?: string
+  userId?: string
+  username?: string
   language: Language
   status: SubmissionStatus
   verdict: Verdict | null
   runtimeMs: number | null
   memoryKb: number | null
+  passTestCount?: number | null
+  totalTestCount?: number | null
+  compileErrorLog?: string | null
   submittedAt: string
+  judgedAt?: string | null
 }

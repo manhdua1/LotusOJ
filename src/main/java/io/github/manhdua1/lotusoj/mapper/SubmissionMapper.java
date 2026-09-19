@@ -9,5 +9,9 @@ import org.mapstruct.Mapping;
 public interface SubmissionMapper {
 
     @Mapping(target = "problemId", source = "problem.id")
+    @Mapping(target = "problemTitle", source = "problem.title")
+    @Mapping(target = "problemSlug", source = "problem.slug")
+    @Mapping(target = "userId", source = "user.id")
+    @Mapping(target = "username", source = "user.username")
     SubmissionResponse toSubmissionResponse(Submission submission);
 }
