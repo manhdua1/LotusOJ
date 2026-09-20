@@ -5,6 +5,7 @@ import io.github.manhdua1.lotusoj.entity.submission.Verdict;
 import io.github.manhdua1.lotusoj.judge.dto.CompileResult;
 import io.github.manhdua1.lotusoj.judge.dto.ExecutionResult;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -41,6 +42,13 @@ public class DockerExecutor {
 
     private static final int OUTPUT_LIMIT_BYTES = 256 * 1024; // 256 KB
     private static final int COMPILE_TIMEOUT_SECONDS = 30;
+
+    @Value("${lotusoj.judge.volume-name:}")
+    private String judgeVolumeName;
+
+    @Value("${lotusoj.judge.container-work-dir:/judge_workspace}")
+    private String judgeContainerWorkDir;
+
 
     // ────────────────────────────────────────────────────────────────
     //  COMPILE
@@ -230,6 +238,11 @@ public class DockerExecutor {
      * Creates a temporary working directory for a submission.
      */
     public Path createWorkDir() throws IOException {
+        if (judgeVolumeName != null && !judgeVolumeName.isBlank()) {
+            Path baseDir = Path.of(judgeContainerWorkDir);
+            Files.createDirectories(baseDir);
+            return Files.createTempDirectory(baseDir, "oj-submission-");
+        }
         return Files.createTempDirectory("oj-submission-");
     }
 
@@ -277,9 +290,15 @@ public class DockerExecutor {
         cmd.add("--memory=512m");
         cmd.add("--cpus=1");
         cmd.add("-v");
-        cmd.add(workDir.toAbsolutePath() + ":/workspace");
-        cmd.add("-w");
-        cmd.add("/workspace");
+        if (judgeVolumeName != null && !judgeVolumeName.isBlank()) {
+            cmd.add(judgeVolumeName + ":/workspace");
+            cmd.add("-w");
+            cmd.add("/workspace/" + workDir.getFileName().toString());
+        } else {
+            cmd.add(workDir.toAbsolutePath() + ":/workspace");
+            cmd.add("-w");
+            cmd.add("/workspace");
+        }
         cmd.add(getDockerImage(language));
 
         switch (language) {
@@ -298,9 +317,9 @@ public class DockerExecutor {
             case CSHARP -> {
                 cmd.add("sh");
                 cmd.add("-c");
-                cmd.add("dotnet new console -o /workspace/build --force > /dev/null 2>&1 && " +
-                        "cp /workspace/solution.cs /workspace/build/Program.cs && " +
-                        "dotnet build /workspace/build -o /workspace/out -c Release --nologo -v q");
+                cmd.add("dotnet new console -o build --force > /dev/null 2>&1 && " +
+                        "cp solution.cs build/Program.cs && " +
+                        "dotnet build build -o out -c Release --nologo -v q");
             }
             default -> throw new IllegalArgumentException("Unsupported language for compilation: " + language);
         }
@@ -328,9 +347,15 @@ public class DockerExecutor {
         cmd.add("--read-only");                             // read-only root filesystem
         cmd.add("--tmpfs=/tmp:rw,size=64m,noexec");         // writable /tmp for runtime needs
         cmd.add("-v");
-        cmd.add(workDir.toAbsolutePath() + ":/workspace:ro");  // mount workspace read-only
-        cmd.add("-w");
-        cmd.add("/workspace");
+        if (judgeVolumeName != null && !judgeVolumeName.isBlank()) {
+            cmd.add(judgeVolumeName + ":/workspace:ro");
+            cmd.add("-w");
+            cmd.add("/workspace/" + workDir.getFileName().toString());
+        } else {
+            cmd.add(workDir.toAbsolutePath() + ":/workspace:ro");  // mount workspace read-only
+            cmd.add("-w");
+            cmd.add("/workspace");
+        }
         cmd.add(getDockerImage(language));
 
         // Use `timeout` to enforce wall-clock time limit inside the container
@@ -350,7 +375,7 @@ public class DockerExecutor {
             }
             case CSHARP -> {
                 cmd.add("dotnet");
-                cmd.add("/workspace/out/build.dll");
+                cmd.add("out/build.dll");
             }
         }
         return cmd;
