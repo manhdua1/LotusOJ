@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react'
 import type { ProblemDetailResponse, ProblemDifficulty } from '../types/problem'
-import type { Language, SubmissionResponse, Verdict } from '../types/submission'
+import type { Language, SubmissionResponse } from '../types/submission'
 import { problemService } from '../services/problemService'
 import { submissionService } from '../services/submissionService'
 import { authService } from '../services/authService'
 import { CodeEditor } from './CodeEditor'
 import { CODE_TEMPLATES } from '../constants/editorTemplates'
+import { SubmissionResultView } from './SubmissionResultView'
+import { AIComplexityCard } from './AIComplexityCard'
 import {
   IconArrowLeft,
   IconClock,
@@ -20,6 +22,9 @@ import {
   IconCode,
   IconAlertCircle,
   IconSpinner,
+  IconSparkles,
+  IconMaximize,
+  IconMinimize,
 } from './Icons'
 
 interface ProblemDetailProps {
@@ -29,7 +34,8 @@ interface ProblemDetailProps {
 }
 
 type ProblemTab = 'description' | 'testcases' | 'info'
-type ConsoleTab = 'result' | 'sampletests'
+type ConsoleTab = 'result' | 'sampletests' | 'ai'
+type DrawerSize = 'compact' | 'normal' | 'expanded'
 
 export const ProblemDetail: React.FC<ProblemDetailProps> = ({
   slug,
@@ -45,6 +51,7 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
   const [activeProblemTab, setActiveProblemTab] = useState<ProblemTab>('description')
   const [activeConsoleTab, setActiveConsoleTab] = useState<ConsoleTab>('result')
   const [selectedTestCaseIdx, setSelectedTestCaseIdx] = useState<number>(0)
+  const [drawerSize, setDrawerSize] = useState<DrawerSize>('normal')
 
   // Submit code state
   const [selectedLanguage, setSelectedLanguage] = useState<Language>('CPP')
@@ -209,106 +216,6 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
         return <span className="leetcode-diff-badge leetcode-diff-hard">Khó</span>
       default:
         return <span className="leetcode-diff-badge">{diff}</span>
-    }
-  }
-
-  const getVerdictDisplay = (verdict: Verdict | null, status: string) => {
-    if (status === 'PENDING') {
-      return (
-        <div className="verdict-banner verdict-pending">
-          <IconSpinner size={16} />
-          <span>Đang xếp hàng chờ chấm...</span>
-        </div>
-      )
-    }
-    if (status === 'JUDGING') {
-      return (
-        <div className="verdict-banner verdict-judging">
-          <IconSpinner size={16} />
-          <span>Đang chấm bài trên máy chủ...</span>
-        </div>
-      )
-    }
-
-    if (!verdict) {
-      return <div className="verdict-banner">{status}</div>
-    }
-
-    switch (verdict) {
-      case 'ACCEPTED':
-        return (
-          <div className="verdict-banner verdict-accepted">
-            <IconCheck size={18} />
-            <div className="verdict-headline">
-              <span className="verdict-title">Chấp nhận (Accepted)</span>
-            </div>
-          </div>
-        )
-      case 'WRONG_ANSWER':
-        return (
-          <div className="verdict-banner verdict-rejected">
-            <span className="verdict-mark">[X]</span>
-            <div className="verdict-headline">
-              <span className="verdict-title">Sai kết quả (Wrong Answer)</span>
-            </div>
-          </div>
-        )
-      case 'TIME_LIMIT_EXCEEDED':
-        return (
-          <div className="verdict-banner verdict-warning">
-            <IconClock size={16} />
-            <div className="verdict-headline">
-              <span className="verdict-title">Quá thời gian (Time Limit Exceeded)</span>
-            </div>
-          </div>
-        )
-      case 'MEMORY_LIMIT_EXCEEDED':
-        return (
-          <div className="verdict-banner verdict-warning">
-            <IconMemory size={16} />
-            <div className="verdict-headline">
-              <span className="verdict-title">Quá dung lượng bộ nhớ (Memory Limit Exceeded)</span>
-            </div>
-          </div>
-        )
-      case 'COMPILATION_ERROR':
-        return (
-          <div className="verdict-banner verdict-compile-err">
-            <IconAlertCircle size={16} />
-            <div className="verdict-headline">
-              <span className="verdict-title">Lỗi biên dịch (Compilation Error)</span>
-            </div>
-          </div>
-        )
-      case 'RUNTIME_ERROR':
-        return (
-          <div className="verdict-banner verdict-rejected">
-            <IconAlertCircle size={16} />
-            <div className="verdict-headline">
-              <span className="verdict-title">Lỗi thực thi (Runtime Error)</span>
-            </div>
-          </div>
-        )
-      case 'OUTPUT_LIMIT_EXCEEDED':
-        return (
-          <div className="verdict-banner verdict-warning">
-            <IconFileText size={16} />
-            <div className="verdict-headline">
-              <span className="verdict-title">Quá dung lượng đầu ra (Output Limit Exceeded)</span>
-            </div>
-          </div>
-        )
-      case 'INTERNAL_ERROR':
-        return (
-          <div className="verdict-banner verdict-rejected">
-            <IconAlertCircle size={16} />
-            <div className="verdict-headline">
-              <span className="verdict-title">Lỗi hệ thống máy chấm (Internal Error)</span>
-            </div>
-          </div>
-        )
-      default:
-        return <div className="verdict-banner">{verdict}</div>
     }
   }
 
@@ -714,7 +621,7 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
           </div>
 
           {/* Bottom Console Drawer (LeetCode style) */}
-          <div className="leetcode-console-drawer">
+          <div className={`leetcode-console-drawer drawer-${drawerSize}`}>
             {/* Drawer Tabs */}
             <div className="leetcode-console-nav">
               <div className="leetcode-console-tabs-left">
@@ -724,7 +631,7 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
                   onClick={() => setActiveConsoleTab('result')}
                 >
                   <IconTerminal size={13} />
-                  <span>Kết quả nộp bài</span>
+                  <span>Kết quả</span>
                   {currentSubmission && (
                     <span
                       className={`leetcode-status-dot ${
@@ -740,6 +647,19 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
 
                 <button
                   type="button"
+                  className={`leetcode-console-tab-btn ${activeConsoleTab === 'ai' ? 'active' : ''}`}
+                  onClick={() => {
+                    setActiveConsoleTab('ai')
+                    if (drawerSize === 'compact') setDrawerSize('normal')
+                  }}
+                >
+                  <IconSparkles size={13} color="#8b5cf6" />
+                  <span>Phân tích AI</span>
+                  <span className="ai-nav-badge">Big-O</span>
+                </button>
+
+                <button
+                  type="button"
                   className={`leetcode-console-tab-btn ${activeConsoleTab === 'sampletests' ? 'active' : ''}`}
                   onClick={() => setActiveConsoleTab('sampletests')}
                 >
@@ -749,6 +669,29 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
               </div>
 
               <div className="leetcode-console-actions-right">
+                <button
+                  type="button"
+                  className="leetcode-btn-drawer-toggle"
+                  onClick={() =>
+                    setDrawerSize((prev) =>
+                      prev === 'normal' ? 'expanded' : prev === 'expanded' ? 'compact' : 'normal'
+                    )
+                  }
+                  title={
+                    drawerSize === 'expanded'
+                      ? 'Thu gọn ngăn kéo (Compact)'
+                      : drawerSize === 'compact'
+                      ? 'Kích thước chuẩn (Normal)'
+                      : 'Mở rộng tối đa (Expanded)'
+                  }
+                >
+                  {drawerSize === 'expanded' ? (
+                    <IconMinimize size={13} />
+                  ) : (
+                    <IconMaximize size={13} />
+                  )}
+                </button>
+
                 <button
                   type="button"
                   className="leetcode-btn-submit-main"
@@ -764,6 +707,7 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
 
             {/* Drawer Body */}
             <div className="leetcode-console-body">
+              {/* Tab 1: Submission Result */}
               {activeConsoleTab === 'result' && (
                 <div className="leetcode-result-view">
                   {submitError && (
@@ -774,50 +718,13 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
                   )}
 
                   {currentSubmission ? (
-                    <div className="leetcode-submission-result">
-                      {/* Verdict Header */}
-                      {getVerdictDisplay(currentSubmission.verdict, currentSubmission.status)}
-
-                      {/* Stats Grid */}
-                      <div className="leetcode-stats-row">
-                        <div className="leetcode-stat-box">
-                          <span className="leetcode-stat-label">Thời gian chạy</span>
-                          <span className="leetcode-stat-val">
-                            {currentSubmission.runtimeMs !== null && currentSubmission.runtimeMs !== undefined
-                              ? `${currentSubmission.runtimeMs} ms`
-                              : '—'}
-                          </span>
-                        </div>
-
-                        <div className="leetcode-stat-box">
-                          <span className="leetcode-stat-label">Bộ nhớ sử dụng</span>
-                          <span className="leetcode-stat-val">
-                            {formatMemory(currentSubmission.memoryKb)}
-                          </span>
-                        </div>
-
-                        {currentSubmission.passTestCount !== null &&
-                          currentSubmission.passTestCount !== undefined &&
-                          currentSubmission.totalTestCount && (
-                            <div className="leetcode-stat-box">
-                              <span className="leetcode-stat-label">Test cases vượt qua</span>
-                              <span className="leetcode-stat-val stat-green">
-                                {currentSubmission.passTestCount} / {currentSubmission.totalTestCount}
-                              </span>
-                            </div>
-                          )}
-                      </div>
-
-                      {/* Compiler Error Log */}
-                      {currentSubmission.compileErrorLog && (
-                        <div className="leetcode-compile-log-box">
-                          <div className="leetcode-compile-log-title">Chi tiết lỗi biên dịch:</div>
-                          <pre className="leetcode-compile-log-pre">
-                            {currentSubmission.compileErrorLog}
-                          </pre>
-                        </div>
-                      )}
-                    </div>
+                    <SubmissionResultView
+                      submission={currentSubmission}
+                      onOpenAIAnalysis={() => {
+                        setActiveConsoleTab('ai')
+                        if (drawerSize === 'compact') setDrawerSize('normal')
+                      }}
+                    />
                   ) : (
                     !submitError && (
                       <div className="leetcode-empty-console">
@@ -829,9 +736,22 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
                 </div>
               )}
 
+              {/* Tab 2: AI Complexity Analysis */}
+              {activeConsoleTab === 'ai' && (
+                <div className="leetcode-ai-view">
+                  <AIComplexityCard
+                    language={selectedLanguage}
+                    sourceCode={sourceCode}
+                    problemTitle={problem?.title}
+                    autoAnalyze={true}
+                  />
+                </div>
+              )}
+
+              {/* Tab 3: Sample Test Cases */}
               {activeConsoleTab === 'sampletests' && (
                 <div className="leetcode-tests-view">
-                  {problem.sampleTestCases && problem.sampleTestCases.length > 0 ? (
+                  {problem?.sampleTestCases && problem.sampleTestCases.length > 0 ? (
                     <div className="leetcode-tests-grid">
                       {problem.sampleTestCases.map((tc, idx) => (
                         <div key={idx} className="leetcode-quick-case">

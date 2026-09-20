@@ -4,25 +4,25 @@ spring:
 
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
       timeout: 2000ms
 
   datasource:
-    url: jdbc:mysql://localhost:3306/oj_db
-    username: root
-    password: root
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/oj_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:root}
 
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
 
   rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:guest}
+    password: ${SPRING_RABBITMQ_PASSWORD:guest}
     listener:
       simple:
         acknowledge-mode: manual
@@ -30,6 +30,15 @@ spring:
         max-concurrency: 5
 
 jwt:
-  signer-key: "xst61ez92rNSYQ0lcF8cOFI1R9MPpWf02fExM5YPvuc9NE0R6m1LntdmdiAx2ha4TaPfjaO9kgzKXKbdNHDExk"
+  signer-key: "${JWT_SIGNER_KEY:xst61ez92rNSYQ0lcF8cOFI1R9MPpWf02fExM5YPvuc9NE0R6m1LntdmdiAx2ha4TaPfjaO9kgzKXKbdNHDExk}"
   access-token-duration: 900
   refresh-token-duration: 604800
+
+lotusoj:
+  judge:
+    volume-name: ${LOTUSOJ_JUDGE_VOLUME_NAME:}
+    container-work-dir: ${LOTUSOJ_JUDGE_CONTAINER_WORK_DIR:/judge_workspace}
+
+gemini:
+  api-key: ${GEMINI_API_KEY:}
+  model: ${GEMINI_MODEL:gemini-2.5-flash}

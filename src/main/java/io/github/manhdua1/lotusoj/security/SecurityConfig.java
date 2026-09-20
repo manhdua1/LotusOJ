@@ -32,6 +32,7 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/ai/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/problems", "/api/problems/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/submissions/my").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/submissions", "/api/submissions/**").permitAll()
