@@ -94,6 +94,8 @@ services:
       LOTUSOJ_JUDGE_VOLUME_NAME: lotusoj_judge_workspace
       LOTUSOJ_JUDGE_CONTAINER_WORK_DIR: /judge_workspace
       JWT_SIGNER_KEY: ${JWT_SIGNER_KEY:-xst61ez92rNSYQ0lcF8cOFI1R9MPpWf02fExM5YPvuc9NE0R6m1LntdmdiAx2ha4TaPfjaO9kgzKXKbdNHDExk}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
     healthcheck:
       test: ["CMD-SHELL", "nc -z localhost 8080 || exit 1"]
       interval: 10s

@@ -37,4 +37,8 @@ jwt:
 lotusoj:
   judge:
     volume-name: ${LOTUSOJ_JUDGE_VOLUME_NAME:}
-    container-work-dir: ${LOTUSOJ_JUDGE_CONTAINER_WORK_DIR:/judge_workspace}
+    container-work-dir: ${LOTUSOJ_JUDGE_CONTAINER_WORK_DIR:/judge_workspace}
+
+gemini:
+  api-key: ${GEMINI_API_KEY:}
+  model: ${GEMINI_MODEL:gemini-2.5-flash}
