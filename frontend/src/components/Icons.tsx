@@ -4,6 +4,7 @@ interface IconProps {
   className?: string
   size?: number
   color?: string
+  style?: React.CSSProperties
 }
 
 export const IconReset: React.FC<IconProps> = ({ className = '', size = 14, color = 'currentColor' }) => (
@@ -529,4 +530,172 @@ export const IconXCircle: React.FC<IconProps> = ({ className = '', size = 14, co
     <line x1="9" y1="9" x2="15" y2="15" />
   </svg>
 )
+
+export const IconEdit: React.FC<IconProps> = ({ className = '', size = 14, color = 'currentColor', style }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    style={style}
+  >
+    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+    <path d="m15 5 4 4" />
+  </svg>
+)
+
+export const IconEye: React.FC<IconProps> = ({ className = '', size = 14, color = 'currentColor', style }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    style={style}
+  >
+    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+)
+
+export const IconTable: React.FC<IconProps> = ({ className = '', size = 14, color = 'currentColor', style }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    style={style}
+  >
+    <rect width="18" height="18" x="3" y="3" rx="2" />
+    <path d="M3 9h18" />
+    <path d="M3 15h18" />
+    <path d="M9 3v18" />
+    <path d="M15 3v18" />
+  </svg>
+)
+
+export const IconUndo: React.FC<IconProps> = ({ className = '', size = 14, color = 'currentColor', style }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    style={style}
+  >
+    <path d="M3 7v6h6" />
+    <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+  </svg>
+)
+
+export const IconRedo: React.FC<IconProps> = ({ className = '', size = 14, color = 'currentColor', style }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    style={style}
+  >
+    <path d="M21 7v6h-6" />
+    <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13" />
+  </svg>
+)
+
+export const IconQuote: React.FC<IconProps> = ({ className = '', size = 14, color = 'currentColor', style }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    style={style}
+  >
+    <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z" />
+    <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z" />
+  </svg>
+)
+
+export const IconEraser: React.FC<IconProps> = ({ className = '', size = 14, color = 'currentColor', style }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    style={style}
+  >
+    <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
+    <path d="M22 21H7" />
+    <path d="m5 11 9 9" />
+  </svg>
+)
+
+export const IconPlus: React.FC<IconProps> = ({ className = '', size = 14, color = 'currentColor', style }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    style={style}
+  >
+    <path d="M5 12h14" />
+    <path d="M12 5v14" />
+  </svg>
+)
+
+export const IconFormula: React.FC<IconProps> = ({ className = '', size = 14, color = 'currentColor', style }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    style={style}
+  >
+    <path d="M4 4h16v3" />
+    <path d="M4 20h16v-3" />
+    <path d="m4 4 10 8-10 8" />
+  </svg>
+)
+
 

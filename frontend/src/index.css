@@ -3973,6 +3973,10 @@ a:hover {
   color: #1d4ed8;
 }
 
+.markdown-body-rendered .katex {
+  font-size: 1.08em;
+}
+
 .markdown-body-rendered .math-inline {
   font-family: 'Times New Roman', Cambria, Georgia, serif;
   font-style: italic;
@@ -3985,17 +3989,18 @@ a:hover {
 }
 
 .markdown-body-rendered .math-display {
-  display: block;
-  text-align: center;
-  font-family: 'Times New Roman', Cambria, Georgia, serif;
-  font-size: 1.15em;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow-x: auto;
   background-color: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
-  padding: 10px 14px;
-  margin: 12px 0;
-  color: #1d4ed8;
+  padding: 12px 16px;
+  margin: 14px 0;
+  color: #0f172a;
 }
+
 
 /* Dark theme for Markdown Renderer */
 [data-theme="dark"] .markdown-body-rendered {
@@ -4325,6 +4330,40 @@ a:hover {
   font-size: 11px;
   color: #64748b;
 }
+
+.tiptap-hint-code-btn {
+  background: #e2e8f0;
+  border: 1px solid #cbd5e1;
+  color: #1e293b;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-block;
+  line-height: 1.2;
+}
+
+.tiptap-hint-code-btn:hover {
+  background: #cbd5e1;
+  color: #2563eb;
+  border-color: #94a3b8;
+}
+
+[data-theme="dark"] .tiptap-hint-code-btn {
+  background: #334155;
+  border-color: #475569;
+  color: #38bdf8;
+}
+
+[data-theme="dark"] .tiptap-hint-code-btn:hover {
+  background: #475569;
+  color: #60a5fa;
+  border-color: #64748b;
+}
+
 
 /* Dark theme for Tiptap Editor */
 [data-theme="dark"] .tiptap-editor-container {

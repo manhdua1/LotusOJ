@@ -5,6 +5,18 @@ import { Markdown } from 'tiptap-markdown'
 import Placeholder from '@tiptap/extension-placeholder'
 import { TableKit } from '@tiptap/extension-table'
 import { MarkdownRenderer } from './MarkdownRenderer'
+import {
+  IconEdit,
+  IconEye,
+  IconFileText,
+  IconTable,
+  IconQuote,
+  IconFormula,
+  IconUndo,
+  IconRedo,
+  IconEraser,
+  IconPlus,
+} from './Icons'
 
 export interface TiptapEditorProps {
   value: string
@@ -69,11 +81,55 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
     [editor, mode, value]
   )
 
+  const insertMathFormula = useCallback(
+    (block = false) => {
+      if (mode === 'visual' && editor) {
+        const { from, to } = editor.state.selection
+        const selected = editor.state.doc.textBetween(from, to)
+        if (block) {
+          const formula = selected || 'f(x) = \\sum_{i=1}^n a_i'
+          editor.chain().focus().insertContent(`\n\n$$\n${formula}\n$$\n\n`).run()
+        } else {
+          const formula = selected || 'x'
+          editor.chain().focus().insertContent(`$${formula}$`).run()
+        }
+      } else if (mode === 'markdown') {
+        const textarea = document.querySelector('.tiptap-raw-textarea') as HTMLTextAreaElement | null
+        if (textarea) {
+          const start = textarea.selectionStart
+          const end = textarea.selectionEnd
+          const selected = value.substring(start, end)
+          const insertion = block
+            ? `\n$$\n${selected || 'f(x) = \\sum_{i=1}^n a_i'}\n$$\n`
+            : `$${selected || 'x'}$`
+          const newValue = value.substring(0, start) + insertion + value.substring(end)
+          onChange(newValue)
+          setTimeout(() => {
+            textarea.focus()
+            const cursorTarget = start + (block ? 4 : 1)
+            textarea.setSelectionRange(
+              cursorTarget,
+              cursorTarget + (selected ? selected.length : block ? 22 : 1)
+            )
+          }, 0)
+        } else {
+          onChange(value + (block ? '\n$$\nf(x) = \\sum_{i=1}^n a_i\n$$\n' : ' $x$ '))
+        }
+      }
+    },
+    [mode, editor, value, onChange]
+  )
+
   const insertTemplate = () => {
     const template = `Cho một mảng các số nguyên \`nums\` gồm $N$ phần tử và một số nguyên \`target\`.
 
 ### Yêu cầu
 Tìm chỉ số của **hai phần tử** sao cho tổng của chúng bằng \`target\`.
+
+### Ràng buộc
+- $2 \\le N \\le 10^5$
+- $-10^9 \\le nums[i] \\le 10^9$
+- $-10^9 \\le target \\le 10^9$
 
 ### Lưu ý
 - Mỗi đầu vào có đúng một đáp án duy nhất.
@@ -107,7 +163,8 @@ Tìm chỉ số của **hai phần tử** sao cho tổng của chúng bằng \`t
             onClick={() => handleModeChange('visual')}
             title="Soạn thảo trực quan WYSIWYG"
           >
-            ✏️ Trực quan
+            <IconEdit size={13} />
+            <span>Trực quan</span>
           </button>
           <button
             type="button"
@@ -115,7 +172,8 @@ Tìm chỉ số của **hai phần tử** sao cho tổng của chúng bằng \`t
             onClick={() => handleModeChange('markdown')}
             title="Chỉnh sửa mã nguồn Markdown thô"
           >
-            📄 Mã Markdown
+            <IconFileText size={13} />
+            <span>Mã Markdown</span>
           </button>
           <button
             type="button"
@@ -123,7 +181,8 @@ Tìm chỉ số của **hai phần tử** sao cho tổng của chúng bằng \`t
             onClick={() => handleModeChange('preview')}
             title="Xem trước kết quả hiển thị"
           >
-            👁️ Xem trước
+            <IconEye size={13} />
+            <span>Xem trước</span>
           </button>
         </div>
 
@@ -134,7 +193,8 @@ Tìm chỉ số của **hai phần tử** sao cho tổng của chúng bằng \`t
             onClick={insertTemplate}
             title="Chèn cấu trúc mẫu bài toán"
           >
-            + Chèn mẫu bài toán
+            <IconPlus size={11} style={{ marginRight: '4px', verticalAlign: '-1px' }} />
+            <span>Chèn mẫu bài toán</span>
           </button>
         </div>
       </div>
@@ -239,7 +299,8 @@ Tìm chỉ số của **hai phần tử** sao cho tổng của chúng bằng \`t
               onClick={() => editor.chain().focus().toggleBlockquote().run()}
               title="Khối trích dẫn (Blockquote)"
             >
-              ❝ Quote
+              <IconQuote size={12} style={{ marginRight: '3px' }} />
+              <span>Quote</span>
             </button>
             <button
               type="button"
@@ -272,7 +333,17 @@ Tìm chỉ số của **hai phần tử** sao cho tổng của chúng bằng \`t
               }
               title="Chèn bảng 3x3"
             >
-              ▦ Bảng
+              <IconTable size={13} style={{ marginRight: '4px' }} />
+              <span>Bảng</span>
+            </button>
+            <button
+              type="button"
+              className="tiptap-tool-btn"
+              onClick={() => insertMathFormula(false)}
+              title="Chèn công thức toán học ($...$)"
+            >
+              <IconFormula size={13} style={{ marginRight: '4px' }} />
+              <span>Công thức</span>
             </button>
           </div>
 
@@ -286,7 +357,7 @@ Tìm chỉ số của **hai phần tử** sao cho tổng của chúng bằng \`t
               disabled={!editor.can().undo()}
               title="Hoàn tác (Ctrl+Z)"
             >
-              ↺
+              <IconUndo size={13} />
             </button>
             <button
               type="button"
@@ -295,7 +366,7 @@ Tìm chỉ số của **hai phần tử** sao cho tổng của chúng bằng \`t
               disabled={!editor.can().redo()}
               title="Làm lại (Ctrl+Y)"
             >
-              ↻
+              <IconRedo size={13} />
             </button>
             <button
               type="button"
@@ -303,7 +374,8 @@ Tìm chỉ số của **hai phần tử** sao cho tổng của chúng bằng \`t
               onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()}
               title="Xóa định dạng đang chọn"
             >
-              ✕ Xóa định dạng
+              <IconEraser size={13} style={{ marginRight: '4px' }} />
+              <span>Xóa định dạng</span>
             </button>
           </div>
         </div>
@@ -342,7 +414,24 @@ Tìm chỉ số của **hai phần tử** sao cho tổng của chúng bằng \`t
       {/* Bottom Status / Hints Bar */}
       <div className="tiptap-status-bar">
         <span className="tiptap-hint-item">
-          💡 Hỗ trợ cú pháp Markdown, mã nguồn, bảng và công thức toán học <code style={{ fontSize: '11px', background: '#e2e8f0', padding: '1px 4px', borderRadius: '3px' }}>$công_thức$</code>.
+          Hỗ trợ cú pháp Markdown, bảng biểu và công thức toán học KaTeX:{' '}
+          <button
+            type="button"
+            className="tiptap-hint-code-btn"
+            onClick={() => insertMathFormula(false)}
+            title="Bấm để chèn công thức nội dòng $x$"
+          >
+            $x^2$
+          </button>{' '}
+          hoặc{' '}
+          <button
+            type="button"
+            className="tiptap-hint-code-btn"
+            onClick={() => insertMathFormula(true)}
+            title="Bấm để chèn công thức khối $$...$$"
+          >
+            $$\sum a_i$$
+          </button>
         </span>
         <span className="tiptap-stats">
           {value.length} ký tự
@@ -351,3 +440,4 @@ Tìm chỉ số của **hai phần tử** sao cho tổng của chúng bằng \`t
     </div>
   )
 }
+

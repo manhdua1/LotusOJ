@@ -162,11 +162,6 @@ export const Header: React.FC<HeaderProps> = ({
               BÀI NỘP
             </button>
           </li>
-          <li className="nav-item">
-            <button type="button" onClick={(e) => e.preventDefault()}>
-              KỲ THI
-            </button>
-          </li>
           {(user?.role === 'ADMIN' || user?.role === 'PROBLEM_SETTER') && (
             <li className={`nav-item ${currentTab === 'admin' ? 'active' : ''}`}>
               <button
