@@ -58,10 +58,9 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   const [copied, setCopied] = useState<boolean>(false)
 
   // Auto-save state
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('saved')
   const [lastSavedTime, setLastSavedTime] = useState<string>('')
   const saveTimerRef = useRef<number | null>(null)
-  const isFirstRender = useRef<boolean>(true)
   const latestRef = useRef({ problemSlug, language, value })
 
   useEffect(() => {
@@ -85,38 +84,30 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
       setSaveStatus('saved')
       setLastSavedTime(formatTime(new Date(meta.updatedAt)))
     } else {
-      setSaveStatus('idle')
-      setLastSavedTime('')
+      setSaveStatus('saved')
+      setLastSavedTime(formatTime(new Date()))
     }
-    isFirstRender.current = true
   }, [problemSlug, language])
 
-  // Debounced auto-save on value change
+  // Instant save + visual debounce on value change
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false
-      return
-    }
-
     if (!problemSlug) return
 
-    const existingDraft = codeDraftService.getDraft(problemSlug, language)
-    if (existingDraft === value) {
-      setSaveStatus('saved')
-      return
-    }
+    // Save immediately to localStorage so no keystrokes are ever lost
+    codeDraftService.saveDraft(problemSlug, language, value)
+    codeDraftService.saveLastLanguage(problemSlug, language)
 
+    // Update visual indicator
     setSaveStatus('saving')
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current)
     }
 
     saveTimerRef.current = window.setTimeout(() => {
-      codeDraftService.saveDraft(problemSlug, language, value)
       setSaveStatus('saved')
       setLastSavedTime(formatTime(new Date()))
       saveTimerRef.current = null
-    }, 600)
+    }, 350)
 
     return () => {
       if (saveTimerRef.current) {
@@ -129,26 +120,20 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   // Flush pending save on beforeunload and component unmount
   useEffect(() => {
     const handleBeforeUnload = () => {
-      if (saveTimerRef.current) {
-        clearTimeout(saveTimerRef.current)
-        saveTimerRef.current = null
-      }
       const { problemSlug: curSlug, language: curLang, value: curVal } = latestRef.current
       if (curSlug) {
         codeDraftService.saveDraft(curSlug, curLang, curVal)
+        codeDraftService.saveLastLanguage(curSlug, curLang)
       }
     }
 
     window.addEventListener('beforeunload', handleBeforeUnload)
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload)
-      if (saveTimerRef.current) {
-        clearTimeout(saveTimerRef.current)
-        saveTimerRef.current = null
-      }
       const { problemSlug: curSlug, language: curLang, value: curVal } = latestRef.current
       if (curSlug) {
         codeDraftService.saveDraft(curSlug, curLang, curVal)
+        codeDraftService.saveLastLanguage(curSlug, curLang)
       }
     }
   }, [])
@@ -276,6 +261,25 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
             <IconReset size={13} />
             <span>Mẫu code</span>
           </button>
+
+          {problemSlug && (
+            <div
+              className="leetcode-toolbar-autosave"
+              title={lastSavedTime ? `Đã lưu bản nháp tự động lúc ${lastSavedTime}` : 'Mã nguồn được tự động lưu liên tục'}
+            >
+              {saveStatus === 'saving' ? (
+                <span className="toolbar-autosave-tag saving">
+                  <span className="toolbar-autosave-dot saving" />
+                  <span>Đang lưu...</span>
+                </span>
+              ) : (
+                <span className="toolbar-autosave-tag saved">
+                  <IconCheck size={11} color="#16a34a" />
+                  <span>Đã lưu nháp {lastSavedTime ? `(${lastSavedTime})` : ''}</span>
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="leetcode-editor-toolbar-right">

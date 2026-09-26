@@ -89,6 +89,30 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
     prevLangRef.current = selectedLanguage
   }, [selectedLanguage])
 
+  // Luu ma nguon ngay lap tuc moi khi co thay doi
+  const handleCodeChange = (newCode: string) => {
+    setSourceCode(newCode)
+    sourceCodeRef.current = newCode
+    codeDraftService.saveDraft(slug, selectedLanguage, newCode)
+    codeDraftService.saveLastLanguage(slug, selectedLanguage)
+  }
+
+  // Luu ma nguon khi unmount hoac dong tab / reload trang (F5)
+  useEffect(() => {
+    const saveCurrent = () => {
+      if (slug && selectedLanguage && sourceCodeRef.current !== undefined) {
+        codeDraftService.saveDraft(slug, selectedLanguage, sourceCodeRef.current)
+        codeDraftService.saveLastLanguage(slug, selectedLanguage)
+      }
+    }
+
+    window.addEventListener('beforeunload', saveCurrent)
+    return () => {
+      window.removeEventListener('beforeunload', saveCurrent)
+      saveCurrent()
+    }
+  }, [slug, selectedLanguage])
+
   // When problem slug changes (switching between problems)
   useEffect(() => {
     if (prevSlugRef.current !== slug) {
@@ -159,7 +183,7 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
     if (newLang === selectedLanguage) return
 
     // Save draft for current language before switching
-    codeDraftService.saveDraft(slug, selectedLanguage, sourceCode)
+    codeDraftService.saveDraft(slug, selectedLanguage, sourceCodeRef.current)
 
     setSelectedLanguage(newLang)
     prevLangRef.current = newLang
@@ -167,11 +191,9 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
 
     // Load draft for new language or starter template
     const draft = codeDraftService.getDraft(slug, newLang)
-    if (draft !== null) {
-      setSourceCode(draft)
-    } else {
-      setSourceCode(CODE_TEMPLATES[newLang] || '')
-    }
+    const nextCode = draft !== null ? draft : (CODE_TEMPLATES[newLang] || '')
+    setSourceCode(nextCode)
+    sourceCodeRef.current = nextCode
   }
 
   const startPollingSubmission = (submissionId: string) => {
@@ -768,7 +790,7 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
             <CodeEditor
               language={selectedLanguage}
               value={sourceCode}
-              onChange={setSourceCode}
+              onChange={handleCodeChange}
               problemSlug={slug}
               disabled={submitting || runningCode}
               height="100%"

@@ -12,11 +12,25 @@ import { authService } from './services/authService'
 import type { UserResponse } from './types/auth'
 import './App.css'
 
+const getInitialRoute = (): { tab: NavTab; slug: string } => {
+  const hash = window.location.hash.replace('#', '')
+  if (hash.startsWith('problem/')) {
+    const slug = hash.replace('problem/', '')
+    return { tab: 'problem-detail', slug: slug || 'two-sum' }
+  }
+  if (hash === 'register' || hash === 'dang-ky') return { tab: 'register', slug: 'two-sum' }
+  if (hash === 'login' || hash === 'enter' || hash === 'dang-nhap') return { tab: 'login', slug: 'two-sum' }
+  if (hash === 'admin' || hash === 'quan-tri') return { tab: 'admin', slug: 'two-sum' }
+  if (hash === 'profile' || hash === 'ho-so' || hash === 'user') return { tab: 'profile', slug: 'two-sum' }
+  if (hash === 'submissions' || hash === 'bai-nop' || hash === 'status' || hash === 'my-submissions') return { tab: 'submissions', slug: 'two-sum' }
+  return { tab: 'problemset', slug: 'two-sum' }
+}
+
 function App() {
-  const [currentTab, setCurrentTab] = useState<NavTab>('problemset')
+  const [currentTab, setCurrentTab] = useState<NavTab>(() => getInitialRoute().tab)
   const [user, setUser] = useState<UserResponse | null>(null)
   const [actionNotice, setActionNotice] = useState<string | null>(null)
-  const [selectedSlug, setSelectedSlug] = useState<string>('two-sum')
+  const [selectedSlug, setSelectedSlug] = useState<string>(() => getInitialRoute().slug)
   const [activeTagFilter, setActiveTagFilter] = useState<string>('')
 
   // Initialize auth state and hash routing

@@ -22,8 +22,15 @@ export const codeDraftService = {
       const key = `${DRAFT_PREFIX}${slug}_${language}`
       const raw = localStorage.getItem(key)
       if (!raw) return null
-      const parsed = JSON.parse(raw) as CodeDraftData
-      return typeof parsed.code === 'string' ? parsed.code : null
+      try {
+        const parsed = JSON.parse(raw) as CodeDraftData
+        if (parsed && typeof parsed.code === 'string') {
+          return parsed.code
+        }
+      } catch {
+        return raw
+      }
+      return null
     } catch {
       return null
     }

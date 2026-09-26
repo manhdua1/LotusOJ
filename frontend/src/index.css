@@ -2405,6 +2405,46 @@ a:hover {
   display: inline-block;
 }
 
+.leetcode-toolbar-autosave {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+}
+
+.toolbar-autosave-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 3px;
+  background-color: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.toolbar-autosave-tag.saving {
+  background-color: #fefce8;
+  color: #ca8a04;
+  border-color: #fde047;
+}
+
+.toolbar-autosave-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #16a34a;
+  display: inline-block;
+}
+
+.toolbar-autosave-dot.saving {
+  background-color: #ca8a04;
+  animation: autosave-pulse 0.8s infinite alternate ease-in-out;
+}
+
 /* LeetCode Bottom Console Drawer (Light Default) */
 .leetcode-console-drawer {
   background-color: #f8fafc;
