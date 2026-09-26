@@ -85,7 +85,7 @@ export const AIComplexityCard: React.FC<AIComplexityCardProps> = ({
         <div className="ai-scanning-pulse">
           <IconSparkles size={24} className="ai-pulse-icon" />
           <div className="ai-scanning-texts">
-            <div className="ai-scanning-title">Google Gemini 2.5 Flash đang thẩm định mã nguồn...</div>
+            <div className="ai-scanning-title">Google Gemini 3.8 Flash đang thẩm định mã nguồn...</div>
             <div className="ai-scanning-subtitle">
               Đang phân tích cấu trúc vòng lặp, cây đệ quy và mức độ chiếm dụng bộ nhớ ({language})...
             </div>
@@ -129,7 +129,7 @@ export const AIComplexityCard: React.FC<AIComplexityCardProps> = ({
         <div className="ai-header-left">
           <div className="ai-badge-ai">
             <IconSparkles size={13} />
-            <span>{analysis.aiModel && analysis.aiModel.includes('gemini') ? 'Google Gemini 2.5 Flash' : 'Gemini AI Engine'}</span>
+            <span>{analysis.aiModel && analysis.aiModel.includes('3.8') ? 'Google Gemini 3.8 Flash' : analysis.aiModel && analysis.aiModel.includes('gemini') ? 'Google Gemini AI' : 'Gemini AI Engine'}</span>
           </div>
           <span className="ai-confidence-tag">
             Độ tin cậy: <strong>{analysis.confidenceScore}%</strong>

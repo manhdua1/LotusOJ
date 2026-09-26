@@ -33,7 +33,7 @@ public class GeminiAiServiceImpl implements AiService {
     @Value("${gemini.api-key:}")
     String apiKey;
 
-    @Value("${gemini.model:gemini-2.5-flash}")
+    @Value("${gemini.model:gemini-3.8-flash}")
     String modelName;
 
     static final String GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s";
@@ -44,24 +44,35 @@ public class GeminiAiServiceImpl implements AiService {
 
     @Override
     public ComplexityAnalysisResponse analyzeCodeComplexity(AnalyzeComplexityRequest request) {
+        if (apiKey == null || apiKey.trim().isEmpty()) {
+            log.warn("Gemini API key is not configured. Falling back to local heuristic analysis.");
+            return buildFallbackAnalysis(request, "GEMINI_API_KEY chưa được cấu hình");
+        }
+
+        String resolvedModel = (modelName != null && !modelName.isBlank()) ? modelName.trim() : "gemini-3.8-flash";
+        if ("gemini-3.8".equalsIgnoreCase(resolvedModel)) {
+            resolvedModel = "gemini-3.8-flash";
+        }
+
         try {
             String prompt = buildEngineeredPrompt(request);
             String requestPayload = buildGeminiRequestBody(prompt);
 
-            String url = String.format(GEMINI_API_URL, modelName, apiKey);
+            String url = String.format(GEMINI_API_URL, resolvedModel, apiKey.trim());
             HttpRequest httpRequest = HttpRequest.newBuilder()
                     .uri(URI.create(url))
                     .header("Content-Type", "application/json; charset=utf-8")
+                    .header("x-goog-api-key", apiKey.trim())
                     .timeout(Duration.ofSeconds(30))
                     .POST(HttpRequest.BodyPublishers.ofString(requestPayload))
                     .build();
 
-            log.info("Sending code analysis request to Gemini AI (Model: {})", modelName);
+            log.info("Sending code analysis request to Gemini AI (Model: {})", resolvedModel);
             HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200) {
                 ComplexityAnalysisResponse analysis = parseGeminiResponse(response.body());
-                analysis.setAiModel(modelName);
+                analysis.setAiModel(resolvedModel);
                 return analysis;
             } else {
                 log.error("Gemini API error (HTTP {}): {}", response.statusCode(), response.body());
