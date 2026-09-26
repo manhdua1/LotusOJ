@@ -238,7 +238,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             href="#demo"
             onClick={(e) => {
               e.preventDefault()
-              handleFillDemo('admin@lotusoj.com', '123456')
+              handleFillDemo('admin@lotusoj.com', 'Password123@')
             }}
             style={{ marginRight: '8px' }}
           >
@@ -249,7 +249,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             href="#demo2"
             onClick={(e) => {
               e.preventDefault()
-              handleFillDemo('user@lotusoj.com', '123456')
+              handleFillDemo('bob@lotusoj.com', 'Password123@')
             }}
             style={{ marginLeft: '8px' }}
           >
