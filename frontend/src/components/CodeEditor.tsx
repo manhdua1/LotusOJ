@@ -24,6 +24,7 @@ export interface CodeEditorProps {
   isFullscreen?: boolean
   onToggleFullscreen?: () => void
   onSubmit?: () => void
+  onRun?: () => void
   className?: string
 }
 
@@ -36,6 +37,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   isFullscreen = false,
   onToggleFullscreen,
   onSubmit,
+  onRun,
   className = '',
 }) => {
   // Synchronized global theme: 'light' or 'dark'
@@ -54,10 +56,15 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
   const onSubmitRef = useRef<(() => void) | undefined>(onSubmit)
+  const onRunRef = useRef<(() => void) | undefined>(onRun)
 
   useEffect(() => {
     onSubmitRef.current = onSubmit
   }, [onSubmit])
+
+  useEffect(() => {
+    onRunRef.current = onRun
+  }, [onRun])
 
   const monacoLang = MONACO_LANGUAGE_MAP[language] || 'cpp'
 
@@ -75,6 +82,13 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
     editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
       if (onSubmitRef.current) {
         onSubmitRef.current()
+      }
+    })
+
+    // Keyboard shortcut: Ctrl + ' / Cmd + ' to run code
+    editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Quote, () => {
+      if (onRunRef.current) {
+        onRunRef.current()
       }
     })
   }

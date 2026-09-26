@@ -1,14 +1,17 @@
 package io.github.manhdua1.lotusoj.controller;
 
+import io.github.manhdua1.lotusoj.dto.request.submission.RunCodeRequest;
 import io.github.manhdua1.lotusoj.dto.request.submission.SubmissionRequest;
 import io.github.manhdua1.lotusoj.dto.response.ApiResponse;
 import io.github.manhdua1.lotusoj.dto.response.PageResponse;
+import io.github.manhdua1.lotusoj.dto.response.submission.RunCodeResponse;
 import io.github.manhdua1.lotusoj.dto.response.submission.SubmissionResponse;
 import io.github.manhdua1.lotusoj.entity.submission.Language;
 import io.github.manhdua1.lotusoj.entity.submission.SubmissionStatus;
 import io.github.manhdua1.lotusoj.entity.submission.Verdict;
 import io.github.manhdua1.lotusoj.exception.AppException;
 import io.github.manhdua1.lotusoj.exception.ErrorCode;
+import io.github.manhdua1.lotusoj.judge.JudgeService;
 import io.github.manhdua1.lotusoj.security.CustomUserDetails;
 import io.github.manhdua1.lotusoj.service.submission.SubmissionService;
 import jakarta.validation.Valid;
@@ -27,6 +30,19 @@ import java.util.UUID;
 public class SubmissionController {
 
     private final SubmissionService submissionService;
+    private final JudgeService judgeService;
+
+    /**
+     * Chạy thử code với input tùy biến (không lưu vào database hay thống kê)
+     */
+    @PostMapping("/run")
+    public ApiResponse<RunCodeResponse> runCode(@RequestBody @Valid RunCodeRequest request,
+                                                @AuthenticationPrincipal CustomUserDetails userDetails) {
+        if (userDetails == null) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+        return ApiResponse.success(judgeService.runCode(request));
+    }
 
     @PostMapping
     public ApiResponse<SubmissionResponse> submit(@RequestBody @Valid SubmissionRequest request,

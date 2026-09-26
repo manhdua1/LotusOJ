@@ -36,3 +36,36 @@ export interface SubmissionResponse {
   submittedAt: string
   judgedAt?: string | null
 }
+
+export interface RunCodeItemResult {
+  testCaseIndex: number
+  verdict: Verdict
+  input: string
+  expectedOutput: string
+  actualOutput?: string | null
+  errorLog?: string | null
+  runtimeMs?: number | null
+  memoryKb?: number | null
+  passed?: boolean | null
+}
+
+export interface RunCodeRequest {
+  problemId: string
+  language: Language
+  sourceCode: string
+}
+
+export interface RunCodeResponse {
+  verdict: Verdict
+  errorLog?: string | null
+  runtimeMs?: number | null
+  memoryKb?: number | null
+  passCount?: number | null
+  totalCount?: number | null
+  sampleResults?: RunCodeItemResult[]
+  // Fallback single-case fields
+  input?: string | null
+  output?: string | null
+  expectedOutput?: string | null
+  passed?: boolean | null
+}

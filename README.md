@@ -1,4 +1,4 @@
-﻿# LotusOJ
+# LotusOJ
 
 A full-stack Online Judge platform for competitive programming practice and evaluation. LotusOJ provides automated code judging, problem management, submission tracking, and AI-powered complexity analysis.
 
@@ -104,7 +104,8 @@ When a user submits code, the backend places the submission on a RabbitMQ queue.
 - **Problem Set** - Browse, search, and filter problems by tags and difficulty.
 - **Rich Problem Descriptions** - Problems support full Markdown, code blocks, tables, and KaTeX math formulas.
 - **Tiptap Editor** - Admin panel uses a WYSIWYG / raw Markdown / preview editor for writing problem statements.
-- **Code Submission** - Submit solutions using Monaco Editor with syntax highlighting.
+- **Run Code (Sample Tests)** - Test code on-demand against sample testcases inside isolated Docker containers without saving to database or polluting submission statistics (shortcut: `Ctrl + '`).
+- **Code Submission** - Submit solutions using Monaco Editor with syntax highlighting (shortcut: `Ctrl + Enter`).
 - **Real-time Verdicts** - WebSocket updates deliver judge results without page reload.
 - **Sandboxed Execution** - Each submission runs in an isolated Docker container with no network access, CPU time limits, and memory limits.
 - **Multi-language Support** - C, C++, Java, Python, C#.

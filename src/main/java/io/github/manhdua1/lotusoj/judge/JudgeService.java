@@ -1,5 +1,7 @@
 package io.github.manhdua1.lotusoj.judge;
 
+import io.github.manhdua1.lotusoj.dto.request.submission.RunCodeRequest;
+import io.github.manhdua1.lotusoj.dto.response.submission.RunCodeResponse;
 import io.github.manhdua1.lotusoj.dto.response.testCase.TestCaseResponse;
 import io.github.manhdua1.lotusoj.entity.problem.Problem;
 import io.github.manhdua1.lotusoj.entity.submission.Submission;
@@ -26,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.file.Path;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -145,12 +148,149 @@ public class JudgeService {
         }
     }
 
+    public RunCodeResponse runCode(RunCodeRequest request) {
+        int timeLimit = 2000;
+        int memoryLimit = 262144; // 256 MB
+
+        List<TestCaseResponse> sampleTestCases = List.of();
+        if (request.getProblemId() != null) {
+            Problem problem = problemRepository.findById(request.getProblemId()).orElse(null);
+            if (problem != null) {
+                if (problem.getTimeLimitMs() != null) {
+                    timeLimit = problem.getTimeLimitMs();
+                }
+                if (problem.getMemoryLimitKb() != null) {
+                    memoryLimit = problem.getMemoryLimitKb();
+                }
+            }
+            sampleTestCases = testCaseService.getSampleTestCases(request.getProblemId());
+        }
+
+        if (sampleTestCases == null || sampleTestCases.isEmpty()) {
+            return RunCodeResponse.builder()
+                    .verdict(Verdict.INTERNAL_ERROR)
+                    .errorLog("Bài tập này hiện chưa có testcase mẫu để chạy thử.")
+                    .passCount(0)
+                    .totalCount(0)
+                    .sampleResults(List.of())
+                    .passed(false)
+                    .build();
+        }
+
+        Path workDir = null;
+        try {
+            workDir = dockerExecutor.createWorkDir();
+
+            // 1. Compile source code
+            CompileResult compileResult = dockerExecutor.compile(
+                    request.getLanguage(),
+                    request.getSourceCode(),
+                    workDir
+            );
+
+            if (!compileResult.isSuccess()) {
+                return RunCodeResponse.builder()
+                        .verdict(Verdict.COMPILATION_ERROR)
+                        .errorLog(compileResult.getErrorLog())
+                        .passCount(0)
+                        .totalCount(sampleTestCases.size())
+                        .sampleResults(List.of())
+                        .passed(false)
+                        .build();
+            }
+
+            // 2. Execute against all sample test cases
+            List<RunCodeResponse.RunCodeItemResult> itemResults = new ArrayList<>();
+            int passCount = 0;
+            int maxRuntimeMs = 0;
+            long maxMemoryKb = 0;
+            Verdict overallVerdict = Verdict.ACCEPTED;
+
+            for (int i = 0; i < sampleTestCases.size(); i++) {
+                TestCaseResponse tc = sampleTestCases.get(i);
+                String tcInput = tc.getInput() != null ? tc.getInput() : "";
+                String tcExpected = tc.getExpectedOutput() != null ? tc.getExpectedOutput() : "";
+
+                ExecutionResult execResult = dockerExecutor.execute(
+                        request.getLanguage(),
+                        workDir,
+                        tcInput,
+                        timeLimit,
+                        memoryLimit
+                );
+
+                Verdict tcVerdict = execResult.getVerdict();
+                boolean passed = false;
+
+                if (tcVerdict == Verdict.ACCEPTED) {
+                    tcVerdict = compareOutput(execResult.getOutput(), tcExpected);
+                    passed = (tcVerdict == Verdict.ACCEPTED);
+                }
+
+                if (passed) {
+                    passCount++;
+                } else if (overallVerdict == Verdict.ACCEPTED) {
+                    overallVerdict = tcVerdict;
+                }
+
+                if (execResult.getRuntimeMs() > maxRuntimeMs) {
+                    maxRuntimeMs = execResult.getRuntimeMs();
+                }
+                if (execResult.getMemoryKb() > maxMemoryKb) {
+                    maxMemoryKb = execResult.getMemoryKb();
+                }
+
+                itemResults.add(RunCodeResponse.RunCodeItemResult.builder()
+                        .testCaseIndex(i)
+                        .verdict(tcVerdict)
+                        .input(tcInput)
+                        .expectedOutput(tcExpected)
+                        .actualOutput(execResult.getOutput())
+                        .errorLog(execResult.getErrorMessage())
+                        .runtimeMs(execResult.getRuntimeMs())
+                        .memoryKb(execResult.getMemoryKb())
+                        .passed(passed)
+                        .build());
+            }
+
+            RunCodeResponse.RunCodeItemResult firstItem = !itemResults.isEmpty() ? itemResults.getFirst() : null;
+
+            return RunCodeResponse.builder()
+                    .verdict(overallVerdict)
+                    .runtimeMs(maxRuntimeMs)
+                    .memoryKb(maxMemoryKb)
+                    .passCount(passCount)
+                    .totalCount(sampleTestCases.size())
+                    .sampleResults(itemResults)
+                    .input(firstItem != null ? firstItem.getInput() : null)
+                    .output(firstItem != null ? firstItem.getActualOutput() : null)
+                    .expectedOutput(firstItem != null ? firstItem.getExpectedOutput() : null)
+                    .passed(passCount == sampleTestCases.size())
+                    .build();
+
+        } catch (Exception e) {
+            log.error("Internal error running sample tests: {}", e.getMessage(), e);
+            return RunCodeResponse.builder()
+                    .verdict(Verdict.INTERNAL_ERROR)
+                    .errorLog("Lỗi hệ thống khi chạy thử code: " + e.getMessage())
+                    .passCount(0)
+                    .totalCount(sampleTestCases.size())
+                    .sampleResults(List.of())
+                    .passed(false)
+                    .build();
+        } finally {
+            if (workDir != null) {
+                dockerExecutor.cleanupWorkDir(workDir);
+            }
+        }
+    }
+
     private Verdict compareOutput(String actualOutput, String expectedOutput) {
         if (actualOutput == null) actualOutput = "";
         if (expectedOutput == null) expectedOutput = "";
 
-        String actual = actualOutput.stripTrailing();
-        String expected = expectedOutput.stripTrailing();
+        String actual = actualOutput.replace("\r\n", "\n").stripTrailing();
+        String expected = expectedOutput.replace("\r\n", "\n").stripTrailing();
 
         return actual.equals(expected) ? Verdict.ACCEPTED : Verdict.WRONG_ANSWER;
     }

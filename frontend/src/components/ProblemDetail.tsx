@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
 import type { ProblemDetailResponse, ProblemDifficulty } from '../types/problem'
-import type { Language, SubmissionResponse } from '../types/submission'
+import type { Language, RunCodeResponse, SubmissionResponse } from '../types/submission'
 import { problemService } from '../services/problemService'
 import { submissionService } from '../services/submissionService'
 import { authService } from '../services/authService'
@@ -16,6 +16,7 @@ import {
   IconCopy,
   IconCheck,
   IconSend,
+  IconPlay,
   IconExpand,
   IconCompress,
   IconTerminal,
@@ -35,7 +36,7 @@ interface ProblemDetailProps {
 }
 
 type ProblemTab = 'description' | 'testcases' | 'info'
-type ConsoleTab = 'result' | 'sampletests' | 'ai'
+type ConsoleTab = 'testcase' | 'runresult' | 'result' | 'ai'
 type DrawerSize = 'compact' | 'normal' | 'expanded'
 
 export const ProblemDetail: React.FC<ProblemDetailProps> = ({
@@ -50,9 +51,16 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
 
   // Tabs state
   const [activeProblemTab, setActiveProblemTab] = useState<ProblemTab>('description')
-  const [activeConsoleTab, setActiveConsoleTab] = useState<ConsoleTab>('result')
+  const [activeConsoleTab, setActiveConsoleTab] = useState<ConsoleTab>('testcase')
   const [selectedTestCaseIdx, setSelectedTestCaseIdx] = useState<number>(0)
   const [drawerSize, setDrawerSize] = useState<DrawerSize>('normal')
+
+  // Run code state (chạy thử chỉ trên testcase mẫu)
+  const [runningCode, setRunningCode] = useState<boolean>(false)
+  const [runResult, setRunResult] = useState<RunCodeResponse | null>(null)
+  const [runError, setRunError] = useState<string | null>(null)
+  const [selectedSampleIdx, setSelectedSampleIdx] = useState<number>(0)
+  const [selectedResultSampleIdx, setSelectedResultSampleIdx] = useState<number>(0)
 
   // Submit code state
   const [selectedLanguage, setSelectedLanguage] = useState<Language>('CPP')
@@ -77,6 +85,8 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
         const data = await problemService.getProblemBySlug(slug)
         if (isMounted) {
           setProblem(data)
+          setSelectedSampleIdx(0)
+          setSelectedResultSampleIdx(0)
         }
       } catch (err: unknown) {
         if (isMounted) {
@@ -99,17 +109,6 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
       }
     }
   }, [slug])
-
-  // Escape key to toggle fullscreen
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isFullscreen) {
-        setIsFullscreen(false)
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isFullscreen])
 
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text)
@@ -207,6 +206,116 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
     }
   }
 
+  const handleRunCode = async () => {
+    if (runningCode || submitting) return
+    setRunError(null)
+
+    if (!authService.isAuthenticated()) {
+      setRunError('Bạn cần đăng nhập tài khoản để chạy thử code!')
+      setActiveConsoleTab('runresult')
+      if (drawerSize === 'compact') setDrawerSize('normal')
+      return
+    }
+
+    if (!problem?.id) {
+      setRunError('Không tìm thấy thông tin bài tập.')
+      setActiveConsoleTab('runresult')
+      if (drawerSize === 'compact') setDrawerSize('normal')
+      return
+    }
+
+    if (!problem.sampleTestCases || problem.sampleTestCases.length === 0) {
+      setRunError('Bài tập này hiện chưa có testcase mẫu để chạy thử.')
+      setActiveConsoleTab('runresult')
+      if (drawerSize === 'compact') setDrawerSize('normal')
+      return
+    }
+
+    if (!sourceCode.trim()) {
+      setRunError('Vui lòng nhập mã nguồn trước khi chạy thử.')
+      setActiveConsoleTab('runresult')
+      if (drawerSize === 'compact') setDrawerSize('normal')
+      return
+    }
+
+    setRunningCode(true)
+    setActiveConsoleTab('runresult')
+    if (drawerSize === 'compact') setDrawerSize('normal')
+
+    try {
+      const res = await submissionService.runCode({
+        problemId: problem.id,
+        language: selectedLanguage,
+        sourceCode: sourceCode.trim(),
+      })
+      setRunResult(res)
+      setSelectedResultSampleIdx(0)
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setRunError(err.message)
+      } else {
+        setRunError('Lỗi kết nối khi chạy thử code.')
+      }
+    } finally {
+      setRunningCode(false)
+    }
+  }
+
+  // Keyboard shortcuts: Escape (fullscreen), Ctrl + ' (run code), Ctrl + Enter (submit)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false)
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "'") {
+        e.preventDefault()
+        handleRunCode()
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault()
+        handleSubmitSolution()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isFullscreen, runningCode, submitting, sourceCode, selectedLanguage, problem])
+
+  const getVerdictLabel = (
+    verdict: string,
+    _passed?: boolean | null,
+    passCount?: number | null,
+    totalCount?: number | null
+  ) => {
+    if (verdict === 'ACCEPTED') {
+      if (totalCount && totalCount > 0) {
+        return `Chấp nhận toàn bộ testcase mẫu (${passCount}/${totalCount})`
+      }
+      return 'Chấp nhận (Passed)'
+    }
+    if (verdict === 'WRONG_ANSWER') {
+      if (totalCount && totalCount > 0) {
+        return `Sai kết quả (${passCount ?? 0}/${totalCount} đạt)`
+      }
+      return 'Sai kết quả (Wrong Answer)'
+    }
+    switch (verdict) {
+      case 'TIME_LIMIT_EXCEEDED':
+        return 'Quá giới hạn thời gian (Time Limit Exceeded)'
+      case 'MEMORY_LIMIT_EXCEEDED':
+        return 'Quá giới hạn bộ nhớ (Memory Limit Exceeded)'
+      case 'COMPILATION_ERROR':
+        return 'Lỗi biên dịch (Compilation Error)'
+      case 'RUNTIME_ERROR':
+        return 'Lỗi thực thi (Runtime Error)'
+      case 'OUTPUT_LIMIT_EXCEEDED':
+        return 'Vượt quá giới hạn đầu ra (Output Limit Exceeded)'
+      case 'INTERNAL_ERROR':
+        return 'Lỗi hệ thống máy chấm (Internal Error)'
+      default:
+        return verdict
+    }
+  }
+
   const getDifficultyBadge = (diff: ProblemDifficulty) => {
     switch (diff) {
       case 'EASY':
@@ -275,9 +384,20 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
         <div className="leetcode-navbar-right">
           <button
             type="button"
+            className="leetcode-nav-btn leetcode-btn-run"
+            onClick={handleRunCode}
+            disabled={runningCode || submitting}
+            title="Chạy thử code với input hiện tại (Ctrl + ')"
+          >
+            {runningCode ? <IconSpinner size={14} /> : <IconPlay size={13} />}
+            <span>{runningCode ? 'Đang chạy...' : 'Chạy thử'}</span>
+          </button>
+
+          <button
+            type="button"
             className="leetcode-nav-btn leetcode-btn-submit"
             onClick={handleSubmitSolution}
-            disabled={submitting}
+            disabled={submitting || runningCode}
             title="Nộp bài giải lên hệ thống chấm điểm (Ctrl + Enter)"
           >
             {submitting ? <IconSpinner size={14} /> : <IconSend size={13} />}
@@ -585,7 +705,7 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
             </div>
 
             <div className="leetcode-lang-shortcut-hint">
-              <span>Ctrl + Enter để nộp bài</span>
+              <span>Ctrl + ' để chạy thử | Ctrl + Enter để nộp bài</span>
             </div>
           </div>
 
@@ -595,11 +715,12 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
               language={selectedLanguage}
               value={sourceCode}
               onChange={setSourceCode}
-              disabled={submitting}
+              disabled={submitting || runningCode}
               height="100%"
               isFullscreen={isFullscreen}
               onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
               onSubmit={handleSubmitSolution}
+              onRun={handleRunCode}
             />
           </div>
 
@@ -610,11 +731,43 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
               <div className="leetcode-console-tabs-left">
                 <button
                   type="button"
-                  className={`leetcode-console-tab-btn ${activeConsoleTab === 'result' ? 'active' : ''}`}
-                  onClick={() => setActiveConsoleTab('result')}
+                  className={`leetcode-console-tab-btn ${activeConsoleTab === 'testcase' ? 'active' : ''}`}
+                  onClick={() => setActiveConsoleTab('testcase')}
+                  title="Dữ liệu đầu vào thử nghiệm"
+                >
+                  <IconCode size={13} />
+                  <span>Testcase</span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`leetcode-console-tab-btn ${activeConsoleTab === 'runresult' ? 'active' : ''}`}
+                  onClick={() => setActiveConsoleTab('runresult')}
+                  title="Kết quả chạy thử"
                 >
                   <IconTerminal size={13} />
-                  <span>Kết quả</span>
+                  <span>Kết quả chạy</span>
+                  {runResult && (
+                    <span
+                      className={`leetcode-status-dot ${
+                        runResult.verdict === 'ACCEPTED'
+                          ? 'dot-success'
+                          : runResult.verdict === 'COMPILATION_ERROR'
+                          ? 'dot-pending'
+                          : 'dot-danger'
+                      }`}
+                    />
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  className={`leetcode-console-tab-btn ${activeConsoleTab === 'result' ? 'active' : ''}`}
+                  onClick={() => setActiveConsoleTab('result')}
+                  title="Kết quả chấm bài chính thức"
+                >
+                  <IconSend size={13} />
+                  <span>Kết quả nộp bài</span>
                   {currentSubmission && (
                     <span
                       className={`leetcode-status-dot ${
@@ -635,19 +788,11 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
                     setActiveConsoleTab('ai')
                     if (drawerSize === 'compact') setDrawerSize('normal')
                   }}
+                  title="Phân tích độ phức tạp Big-O"
                 >
                   <IconSparkles size={13} color="#8b5cf6" />
                   <span>Phân tích AI</span>
                   <span className="ai-nav-badge">Big-O</span>
-                </button>
-
-                <button
-                  type="button"
-                  className={`leetcode-console-tab-btn ${activeConsoleTab === 'sampletests' ? 'active' : ''}`}
-                  onClick={() => setActiveConsoleTab('sampletests')}
-                >
-                  <IconCode size={13} />
-                  <span>Testcase ví dụ</span>
                 </button>
               </div>
 
@@ -677,9 +822,20 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
 
                 <button
                   type="button"
+                  className="leetcode-btn-run-main"
+                  onClick={handleRunCode}
+                  disabled={runningCode || submitting}
+                  title="Chạy thử code với input hiện tại (Ctrl + ')"
+                >
+                  {runningCode ? <IconSpinner size={14} /> : <IconPlay size={13} />}
+                  <span>{runningCode ? 'Đang chạy...' : 'Chạy thử'}</span>
+                </button>
+
+                <button
+                  type="button"
                   className="leetcode-btn-submit-main"
                   onClick={handleSubmitSolution}
-                  disabled={submitting}
+                  disabled={submitting || runningCode}
                   title="Gửi bài nộp chấm điểm (Ctrl + Enter)"
                 >
                   {submitting ? <IconSpinner size={14} /> : <IconSend size={13} />}
@@ -690,7 +846,184 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
 
             {/* Drawer Body */}
             <div className="leetcode-console-body">
-              {/* Tab 1: Submission Result */}
+              {/* Tab 1: Sample Testcases (Read-only) */}
+              {activeConsoleTab === 'testcase' && (
+                <div className="leetcode-testcase-container">
+                  {problem?.sampleTestCases && problem.sampleTestCases.length > 0 ? (
+                    <>
+                      <div className="leetcode-case-pills">
+                        {problem.sampleTestCases.map((_, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            className={`leetcode-case-pill ${selectedSampleIdx === idx ? 'active' : ''}`}
+                            onClick={() => setSelectedSampleIdx(idx)}
+                          >
+                            Ví dụ {idx + 1}
+                          </button>
+                        ))}
+                      </div>
+
+                      {problem.sampleTestCases[selectedSampleIdx] && (
+                        <div className="leetcode-testcase-viewer">
+                          <div className="leetcode-run-block">
+                            <div className="leetcode-run-block-title">Dữ liệu đầu vào (Input):</div>
+                            <pre className="leetcode-run-pre">
+                              {problem.sampleTestCases[selectedSampleIdx].input || '(stdin trống)'}
+                            </pre>
+                          </div>
+
+                          <div className="leetcode-run-block">
+                            <div className="leetcode-run-block-title">Output kỳ vọng (Expected Output):</div>
+                            <pre className="leetcode-run-pre run-pre-expected">
+                              {problem.sampleTestCases[selectedSampleIdx].expectedOutput || '(output trống)'}
+                            </pre>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="leetcode-empty-console">
+                      <IconCode size={22} color="#6b7280" />
+                      <span>Bài tập này hiện chưa có testcase mẫu.</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Tab 2: Run Result on Sample Tests */}
+              {activeConsoleTab === 'runresult' && (
+                <div className="leetcode-run-result-view">
+                  {runError && (
+                    <div className="leetcode-alert-error">
+                      <IconAlertCircle size={15} />
+                      <span>{runError}</span>
+                    </div>
+                  )}
+
+                  {runningCode ? (
+                    <div className="leetcode-run-loading">
+                      <IconSpinner size={24} />
+                      <div className="leetcode-run-loading-title">Đang biên dịch và chạy thử trên các testcase mẫu...</div>
+                      <div className="leetcode-run-loading-sub">Hệ thống đang kiểm tra mã nguồn trong Docker sandbox với dữ liệu ví dụ của bài tập.</div>
+                    </div>
+                  ) : runResult ? (
+                    <div className="leetcode-run-result-card">
+                      <div className="leetcode-run-result-header">
+                        <div className={`leetcode-run-verdict-badge verdict-${runResult.verdict.toLowerCase()}`}>
+                          {getVerdictLabel(runResult.verdict, runResult.passed, runResult.passCount, runResult.totalCount)}
+                        </div>
+
+                        <div className="leetcode-run-meta">
+                          <span className="leetcode-run-meta-item">
+                            Thời gian: <strong>{formatTime(runResult.runtimeMs)}</strong>
+                          </span>
+                          <span className="leetcode-run-meta-item">
+                            Bộ nhớ: <strong>{formatMemory(runResult.memoryKb)}</strong>
+                          </span>
+                        </div>
+                      </div>
+
+                      {runResult.errorLog && (
+                        <div className="leetcode-run-block block-error">
+                          <div className="leetcode-run-block-title">
+                            {runResult.verdict === 'COMPILATION_ERROR' ? 'Chi tiết lỗi biên dịch:' : 'Thông báo lỗi thực thi (stderr):'}
+                          </div>
+                          <pre className="leetcode-run-pre run-pre-error">{runResult.errorLog}</pre>
+                        </div>
+                      )}
+
+                      {/* Pills for each sample testcase result */}
+                      {runResult.sampleResults && runResult.sampleResults.length > 0 && (
+                        <div className="leetcode-case-pills">
+                          {runResult.sampleResults.map((item, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              className={`leetcode-case-pill ${selectedResultSampleIdx === idx ? 'active' : ''}`}
+                              onClick={() => setSelectedResultSampleIdx(idx)}
+                            >
+                              <span>Ví dụ {idx + 1}</span>
+                              <span
+                                className={`leetcode-status-dot ${item.passed ? 'dot-success' : 'dot-danger'}`}
+                                style={{ marginLeft: 6 }}
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Active sample result detail */}
+                      {runResult.sampleResults && runResult.sampleResults[selectedResultSampleIdx] ? (
+                        <>
+                          <div className="leetcode-run-block">
+                            <div className="leetcode-run-block-title">Đầu vào (Input):</div>
+                            <pre className="leetcode-run-pre">
+                              {runResult.sampleResults[selectedResultSampleIdx].input || '(stdin trống)'}
+                            </pre>
+                          </div>
+
+                          <div className="leetcode-run-block">
+                            <div className="leetcode-run-block-title">Đầu ra thực tế của bạn (Output):</div>
+                            <pre className="leetcode-run-pre run-pre-output">
+                              {runResult.sampleResults[selectedResultSampleIdx].actualOutput !== undefined &&
+                              runResult.sampleResults[selectedResultSampleIdx].actualOutput !== null &&
+                              runResult.sampleResults[selectedResultSampleIdx].actualOutput !== ''
+                                ? runResult.sampleResults[selectedResultSampleIdx].actualOutput
+                                : '(không có output)'}
+                            </pre>
+                          </div>
+
+                          <div className="leetcode-run-block">
+                            <div className="leetcode-run-block-title">Đầu ra kỳ vọng (Expected Output):</div>
+                            <pre className="leetcode-run-pre run-pre-expected">
+                              {runResult.sampleResults[selectedResultSampleIdx].expectedOutput || '(không có output kỳ vọng)'}
+                            </pre>
+                          </div>
+
+                          {runResult.sampleResults[selectedResultSampleIdx].errorLog && (
+                            <div className="leetcode-run-block block-error">
+                              <div className="leetcode-run-block-title">Chi tiết lỗi testcase:</div>
+                              <pre className="leetcode-run-pre run-pre-error">
+                                {runResult.sampleResults[selectedResultSampleIdx].errorLog}
+                              </pre>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        /* Fallback if single result */
+                        runResult.input !== undefined && (
+                          <>
+                            <div className="leetcode-run-block">
+                              <div className="leetcode-run-block-title">Đầu vào (Input):</div>
+                              <pre className="leetcode-run-pre">{runResult.input || '(stdin trống)'}</pre>
+                            </div>
+                            <div className="leetcode-run-block">
+                              <div className="leetcode-run-block-title">Đầu ra thực tế của bạn (Output):</div>
+                              <pre className="leetcode-run-pre run-pre-output">{runResult.output || '(không có output)'}</pre>
+                            </div>
+                            {runResult.expectedOutput && (
+                              <div className="leetcode-run-block">
+                                <div className="leetcode-run-block-title">Đầu ra kỳ vọng (Expected Output):</div>
+                                <pre className="leetcode-run-pre run-pre-expected">{runResult.expectedOutput}</pre>
+                              </div>
+                            )}
+                          </>
+                        )
+                      )}
+                    </div>
+                  ) : (
+                    !runError && (
+                      <div className="leetcode-empty-console">
+                        <IconPlay size={24} color="#6b7280" />
+                        <span>Chưa chạy thử mã nguồn. Nhấn <strong>Chạy thử</strong> (Ctrl + ') để kiểm tra code với các testcase mẫu của bài tập.</span>
+                      </div>
+                    )
+                  )}
+                </div>
+              )}
+
+              {/* Tab 3: Submission Result */}
               {activeConsoleTab === 'result' && (
                 <div className="leetcode-result-view">
                   {submitError && (
@@ -712,14 +1045,14 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
                     !submitError && (
                       <div className="leetcode-empty-console">
                         <IconTerminal size={22} color="#6b7280" />
-                        <span>Chưa có kết quả bài nộp trong phiên này. Hãy soạn thảo mã nguồn và nhấn <strong>Nộp bài</strong> (Ctrl + Enter) để chấm điểm trực tiếp.</span>
+                        <span>Chưa có kết quả bài nộp trong phiên này. Nhấn <strong>Nộp bài</strong> (Ctrl + Enter) để chấm điểm toàn bộ bài tập.</span>
                       </div>
                     )
                   )}
                 </div>
               )}
 
-              {/* Tab 2: AI Complexity Analysis */}
+              {/* Tab 4: AI Complexity Analysis */}
               {activeConsoleTab === 'ai' && (
                 <div className="leetcode-ai-view">
                   <AIComplexityCard
@@ -728,31 +1061,6 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
                     problemTitle={problem?.title}
                     autoAnalyze={true}
                   />
-                </div>
-              )}
-
-              {/* Tab 3: Sample Test Cases */}
-              {activeConsoleTab === 'sampletests' && (
-                <div className="leetcode-tests-view">
-                  {problem?.sampleTestCases && problem.sampleTestCases.length > 0 ? (
-                    <div className="leetcode-tests-grid">
-                      {problem.sampleTestCases.map((tc, idx) => (
-                        <div key={idx} className="leetcode-quick-case">
-                          <div className="leetcode-quick-case-title">Ví dụ {idx + 1}</div>
-                          <div className="leetcode-quick-case-block">
-                            <span className="leetcode-quick-label">Input:</span>
-                            <pre className="leetcode-code-snippet">{tc.input}</pre>
-                          </div>
-                          <div className="leetcode-quick-case-block">
-                            <span className="leetcode-quick-label">Expected Output:</span>
-                            <pre className="leetcode-code-snippet">{tc.expectedOutput}</pre>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="leetcode-empty-console">Không có dữ liệu testcase mẫu.</div>
-                  )}
                 </div>
               )}
             </div>

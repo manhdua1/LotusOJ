@@ -1,5 +1,5 @@
 import type { ApiResponse, PageResponse } from '../types/problem'
-import type { Language, SubmissionRequest, SubmissionResponse, SubmissionStatus, Verdict } from '../types/submission'
+import type { Language, RunCodeRequest, RunCodeResponse, SubmissionRequest, SubmissionResponse, SubmissionStatus, Verdict } from '../types/submission'
 import { authService } from './authService'
 
 export interface SubmissionFilterParams {
@@ -16,6 +16,33 @@ export interface SubmissionFilterParams {
 }
 
 export const submissionService = {
+  async runCode(request: RunCodeRequest): Promise<RunCodeResponse> {
+    const response = await authService.fetchWithAuth('/api/submissions/run', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    })
+
+    if (!response.ok) {
+      let errorMsg = `Lỗi chạy thử code (HTTP ${response.status})`
+      try {
+        const errJson: ApiResponse<unknown> = await response.json()
+        if (errJson.message) {
+          errorMsg = errJson.message
+        }
+      } catch {
+        // fallback
+      }
+      throw new Error(errorMsg)
+    }
+
+    const data: ApiResponse<RunCodeResponse> = await response.json()
+    if ((data.code !== 1000 && data.code !== 200) || !data.result) {
+      throw new Error(data.message || 'Không thể chạy thử code. Vui lòng thử lại!')
+    }
+
+    return data.result
+  },
+
   async submitSolution(request: SubmissionRequest): Promise<SubmissionResponse> {
     const response = await authService.fetchWithAuth('/api/submissions', {
       method: 'POST',
