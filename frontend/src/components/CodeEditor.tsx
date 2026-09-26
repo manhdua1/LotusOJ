@@ -4,6 +4,7 @@ import type { Language } from '../types/submission'
 import type { editor } from 'monaco-editor'
 import { MONACO_LANGUAGE_MAP, CODE_TEMPLATES } from '../constants/editorTemplates'
 import { useTheme } from '../context/useTheme'
+import { codeDraftService } from '../services/codeDraftService'
 import {
   IconReset,
   IconCopy,
@@ -26,6 +27,7 @@ export interface CodeEditorProps {
   onSubmit?: () => void
   onRun?: () => void
   className?: string
+  problemSlug?: string
 }
 
 export const CodeEditor: React.FC<CodeEditorProps> = ({
@@ -39,6 +41,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   onSubmit,
   onRun,
   className = '',
+  problemSlug,
 }) => {
   // Synchronized global theme: 'light' or 'dark'
   const { theme: appTheme, toggleTheme } = useTheme()
@@ -53,6 +56,87 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   // Cursor position
   const [cursorPos, setCursorPos] = useState<{ line: number; col: number }>({ line: 1, col: 1 })
   const [copied, setCopied] = useState<boolean>(false)
+
+  // Auto-save state
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('saved')
+  const [lastSavedTime, setLastSavedTime] = useState<string>('')
+  const saveTimerRef = useRef<number | null>(null)
+  const latestRef = useRef({ problemSlug, language, value })
+
+  useEffect(() => {
+    latestRef.current = { problemSlug, language, value }
+  }, [problemSlug, language, value])
+
+  const formatTime = (d: Date): string => {
+    const pad = (n: number) => n.toString().padStart(2, '0')
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  }
+
+  // Load existing draft metadata when problemSlug or language changes
+  useEffect(() => {
+    if (!problemSlug) {
+      setSaveStatus('idle')
+      setLastSavedTime('')
+      return
+    }
+    const meta = codeDraftService.getDraftMetadata(problemSlug, language)
+    if (meta) {
+      setSaveStatus('saved')
+      setLastSavedTime(formatTime(new Date(meta.updatedAt)))
+    } else {
+      setSaveStatus('saved')
+      setLastSavedTime(formatTime(new Date()))
+    }
+  }, [problemSlug, language])
+
+  // Instant save + visual debounce on value change
+  useEffect(() => {
+    if (!problemSlug) return
+
+    // Save immediately to localStorage so no keystrokes are ever lost
+    codeDraftService.saveDraft(problemSlug, language, value)
+    codeDraftService.saveLastLanguage(problemSlug, language)
+
+    // Update visual indicator
+    setSaveStatus('saving')
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current)
+    }
+
+    saveTimerRef.current = window.setTimeout(() => {
+      setSaveStatus('saved')
+      setLastSavedTime(formatTime(new Date()))
+      saveTimerRef.current = null
+    }, 350)
+
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current)
+        saveTimerRef.current = null
+      }
+    }
+  }, [value, problemSlug, language])
+
+  // Flush pending save on beforeunload and component unmount
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const { problemSlug: curSlug, language: curLang, value: curVal } = latestRef.current
+      if (curSlug) {
+        codeDraftService.saveDraft(curSlug, curLang, curVal)
+        codeDraftService.saveLastLanguage(curSlug, curLang)
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      const { problemSlug: curSlug, language: curLang, value: curVal } = latestRef.current
+      if (curSlug) {
+        codeDraftService.saveDraft(curSlug, curLang, curVal)
+        codeDraftService.saveLastLanguage(curSlug, curLang)
+      }
+    }
+  }, [])
 
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
   const onSubmitRef = useRef<(() => void) | undefined>(onSubmit)
@@ -112,7 +196,16 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
         return
       }
     }
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current)
+      saveTimerRef.current = null
+    }
     onChange(template)
+    if (problemSlug) {
+      codeDraftService.saveDraft(problemSlug, language, template)
+      setSaveStatus('saved')
+      setLastSavedTime(formatTime(new Date()))
+    }
     if (editorRef.current) {
       editorRef.current.focus()
     }
@@ -121,7 +214,16 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   const handleClearCode = () => {
     if (!value || value.trim().length === 0) return
     if (window.confirm('Bạn có chắc chắn muốn xóa toàn bộ mã nguồn không?')) {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current)
+        saveTimerRef.current = null
+      }
       onChange('')
+      if (problemSlug) {
+        codeDraftService.saveDraft(problemSlug, language, '')
+        setSaveStatus('saved')
+        setLastSavedTime(formatTime(new Date()))
+      }
       if (editorRef.current) {
         editorRef.current.focus()
       }
@@ -159,6 +261,25 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
             <IconReset size={13} />
             <span>Mẫu code</span>
           </button>
+
+          {problemSlug && (
+            <div
+              className="leetcode-toolbar-autosave"
+              title={lastSavedTime ? `Đã lưu bản nháp tự động lúc ${lastSavedTime}` : 'Mã nguồn được tự động lưu liên tục'}
+            >
+              {saveStatus === 'saving' ? (
+                <span className="toolbar-autosave-tag saving">
+                  <span className="toolbar-autosave-dot saving" />
+                  <span>Đang lưu...</span>
+                </span>
+              ) : (
+                <span className="toolbar-autosave-tag saved">
+                  <IconCheck size={11} color="#16a34a" />
+                  <span>Đã lưu nháp {lastSavedTime ? `(${lastSavedTime})` : ''}</span>
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="leetcode-editor-toolbar-right">
@@ -277,6 +398,34 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
           <span>Dòng {cursorPos.line}, Cột {cursorPos.col}</span>
           <span className="leetcode-status-sep">|</span>
           <span>{lineCount} dòng, {charCount} ký tự</span>
+          {problemSlug && (
+            <>
+              <span className="leetcode-status-sep">|</span>
+              <span
+                className="leetcode-autosave-indicator"
+                title={lastSavedTime ? `Bản nháp đã lưu tự động lúc ${lastSavedTime}` : 'Tự động lưu mã nguồn khi soạn thảo'}
+              >
+                {saveStatus === 'saving' && (
+                  <span className="autosave-tag autosave-saving">
+                    <span className="autosave-pulse-dot" />
+                    <span>Đang lưu...</span>
+                  </span>
+                )}
+                {saveStatus === 'saved' && (
+                  <span className="autosave-tag autosave-saved">
+                    <IconCheck size={11} color="#86efac" />
+                    <span>Đã lưu nháp {lastSavedTime ? `(${lastSavedTime})` : ''}</span>
+                  </span>
+                )}
+                {saveStatus === 'idle' && (
+                  <span className="autosave-tag autosave-idle">
+                    <span className="autosave-dot" />
+                    <span>Tự động lưu</span>
+                  </span>
+                )}
+              </span>
+            </>
+          )}
         </div>
         <div className="leetcode-statusbar-right">
           <span>Tab: 4</span>
