@@ -14,6 +14,7 @@ import type {
 } from '../types/testCase'
 import { problemService } from '../services/problemService'
 import { testCaseService } from '../services/testCaseService'
+import { TiptapEditor } from './TiptapEditor'
 
 interface AdminPanelProps {
   onViewProblem?: (slug: string) => void
@@ -886,15 +887,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onViewProblem }) => {
 
                 <div className="form-group-full">
                   <label className="admin-form-label">
-                    Mô tả bài toán (Statement - Hỗ trợ Markdown) <span style={{ color: '#d32f2f' }}>*</span>:
+                    Mô tả bài toán (Statement - Định dạng Markdown qua TipTap) <span style={{ color: '#d32f2f' }}>*</span>:
                   </label>
-                  <textarea
-                    className="cf-input source-textarea"
-                    rows={8}
-                    placeholder="Mô tả chi tiết bài toán, bối cảnh, yêu cầu..."
+                  <TiptapEditor
                     value={formStatement}
-                    required
-                    onChange={(e) => setFormStatement(e.target.value)}
+                    onChange={setFormStatement}
+                    placeholder="Mô tả chi tiết bài toán, bối cảnh, yêu cầu..."
+                    minHeight="260px"
                   />
                 </div>
 
@@ -1072,13 +1071,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onViewProblem }) => {
                   </div>
 
                   <div className="form-group-full">
-                    <label className="admin-form-label">Mô tả bài toán:</label>
-                    <textarea
-                      className="cf-input source-textarea"
-                      rows={6}
+                    <label className="admin-form-label">Mô tả bài toán (Statement - Định dạng Markdown qua TipTap):</label>
+                    <TiptapEditor
                       value={editStatement}
-                      required
-                      onChange={(e) => setEditStatement(e.target.value)}
+                      onChange={setEditStatement}
+                      placeholder="Mô tả chi tiết bài toán..."
+                      minHeight="240px"
                     />
                   </div>
 

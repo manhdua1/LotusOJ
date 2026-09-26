@@ -8,6 +8,7 @@ import { CodeEditor } from './CodeEditor'
 import { CODE_TEMPLATES } from '../constants/editorTemplates'
 import { SubmissionResultView } from './SubmissionResultView'
 import { AIComplexityCard } from './AIComplexityCard'
+import { MarkdownRenderer } from './MarkdownRenderer'
 import {
   IconArrowLeft,
   IconClock,
@@ -352,11 +353,7 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
                 {/* Problem Statement */}
                 {problem.statement && (
                   <div className="leetcode-content-section">
-                    <div className="leetcode-text-content">
-                      {problem.statement.split('\n').map((para, i) => (
-                        para.trim() ? <p key={i}>{para}</p> : <br key={i} />
-                      ))}
-                    </div>
+                    <MarkdownRenderer content={problem.statement} />
                   </div>
                 )}
 
@@ -364,11 +361,7 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
                 {problem.inputFormat && (
                   <div className="leetcode-content-section">
                     <h3 className="leetcode-section-heading">Định dạng đầu vào (Input)</h3>
-                    <div className="leetcode-text-content">
-                      {problem.inputFormat.split('\n').map((para, i) => (
-                        para.trim() ? <p key={i}>{para}</p> : <br key={i} />
-                      ))}
-                    </div>
+                    <MarkdownRenderer content={problem.inputFormat} />
                   </div>
                 )}
 
@@ -376,11 +369,7 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
                 {problem.outputFormat && (
                   <div className="leetcode-content-section">
                     <h3 className="leetcode-section-heading">Định dạng đầu ra (Output)</h3>
-                    <div className="leetcode-text-content">
-                      {problem.outputFormat.split('\n').map((para, i) => (
-                        para.trim() ? <p key={i}>{para}</p> : <br key={i} />
-                      ))}
-                    </div>
+                    <MarkdownRenderer content={problem.outputFormat} />
                   </div>
                 )}
 
@@ -389,9 +378,7 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
                   <div className="leetcode-content-section">
                     <h3 className="leetcode-section-heading">Ràng buộc dữ liệu (Constraints)</h3>
                     <div className="leetcode-constraints-box">
-                      {problem.constraints.split('\n').map((line, i) => (
-                        line.trim() ? <div key={i} className="leetcode-constraint-item">{line}</div> : null
-                      ))}
+                      <MarkdownRenderer content={problem.constraints} />
                     </div>
                   </div>
                 )}
@@ -445,11 +432,7 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
                 {problem.explanationNote && (
                   <div className="leetcode-content-section">
                     <h3 className="leetcode-section-heading">Giải thích</h3>
-                    <div className="leetcode-text-content">
-                      {problem.explanationNote.split('\n').map((para, i) => (
-                        para.trim() ? <p key={i}>{para}</p> : <br key={i} />
-                      ))}
-                    </div>
+                    <MarkdownRenderer content={problem.explanationNote} />
                   </div>
                 )}
               </div>
