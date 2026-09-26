@@ -15,6 +15,10 @@ public class ProblemSpecification {
     private ProblemSpecification() {}
 
     public static Specification<Problem> filter(ProblemFilterRequest filterRequest, Problem.ProblemStatus effectiveStatus) {
+        return filter(filterRequest, effectiveStatus, null);
+    }
+
+    public static Specification<Problem> filter(ProblemFilterRequest filterRequest, Problem.ProblemStatus effectiveStatus, List<java.util.UUID> solvedProblemIds) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
@@ -46,6 +50,21 @@ public class ProblemSpecification {
                     predicates.add(cb.equal(cb.lower(tagJoin.get("name")), filterRequest.getTag().trim().toLowerCase()));
                     if (query != null) {
                         query.distinct(true);
+                    }
+                }
+
+                // Filter by solved / unsolved status
+                if (filterRequest.getSolved() != null && solvedProblemIds != null) {
+                    if (Boolean.TRUE.equals(filterRequest.getSolved())) {
+                        if (solvedProblemIds.isEmpty()) {
+                            predicates.add(cb.disjunction());
+                        } else {
+                            predicates.add(root.get("id").in(solvedProblemIds));
+                        }
+                    } else {
+                        if (!solvedProblemIds.isEmpty()) {
+                            predicates.add(cb.not(root.get("id").in(solvedProblemIds)));
+                        }
                     }
                 }
             }

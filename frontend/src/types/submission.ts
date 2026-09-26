@@ -26,6 +26,7 @@ export interface SubmissionResponse {
   userId?: string
   username?: string
   language: Language
+  sourceCode?: string
   status: SubmissionStatus
   verdict: Verdict | null
   runtimeMs: number | null

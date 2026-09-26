@@ -1,39 +1,55 @@
 import React, { useEffect, useState } from 'react'
 import type { UserResponse } from '../types/auth'
+import type { SubmissionResponse } from '../types/submission'
 import { authService } from '../services/authService'
+import { submissionService } from '../services/submissionService'
 
 interface UserProfileProps {
   initialUser: UserResponse | null
   onNavigate: (tab: any) => void
+  onSelectProblem?: (slug: string) => void
   onLogout: () => void
 }
 
 export const UserProfile: React.FC<UserProfileProps> = ({
   initialUser,
   onNavigate,
+  onSelectProblem,
   onLogout,
 }) => {
   const [profile, setProfile] = useState<UserResponse | null>(initialUser)
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'overview' | 'account'>('overview')
+  const [recentSubmissions, setRecentSubmissions] = useState<SubmissionResponse[]>([])
+  const [loadingSubmissions, setLoadingSubmissions] = useState<boolean>(false)
 
-  useEffect(() => {
-    const fetchLatestProfile = async () => {
-      setLoading(true)
-      try {
-        const fresh = await authService.getProfile()
-        setProfile(fresh)
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          setError(err.message)
-        }
-      } finally {
-        setLoading(false)
+  const fetchProfileAndSubmissions = async () => {
+    setLoading(true)
+    try {
+      const fresh = await authService.getProfile()
+      setProfile(fresh)
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message)
       }
+    } finally {
+      setLoading(false)
     }
 
-    fetchLatestProfile()
+    setLoadingSubmissions(true)
+    try {
+      const res = await submissionService.getMySubmissions({ size: 10, page: 0 })
+      setRecentSubmissions(res.content || [])
+    } catch {
+      // ignore
+    } finally {
+      setLoadingSubmissions(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchProfileAndSubmissions()
   }, [])
 
   const user = profile || initialUser
@@ -80,6 +96,94 @@ export const UserProfile: React.FC<UserProfileProps> = ({
       })
     } catch {
       return dateStr
+    }
+  }
+
+  const formatDateTime = (dateStr?: string) => {
+    if (!dateStr) return '—'
+    try {
+      const d = new Date(dateStr)
+      return d.toLocaleString('vi-VN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      })
+    } catch {
+      return dateStr
+    }
+  }
+
+  const formatRuntime = (ms?: number | null) => {
+    if (ms === null || ms === undefined) return '—'
+    if (ms >= 1000) {
+      return `${(ms / 1000).toFixed(2)} s`
+    }
+    return `${ms} ms`
+  }
+
+  const formatMemory = (kb?: number | null) => {
+    if (kb === null || kb === undefined) return '—'
+    if (kb >= 1024) {
+      return `${(kb / 1024).toFixed(1)} MB`
+    }
+    return `${kb} KB`
+  }
+
+  const renderVerdictBadge = (sub: SubmissionResponse) => {
+    if (sub.status === 'PENDING' || sub.status === 'JUDGING') {
+      return (
+        <span className="verdict-pending" style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' }}>
+          Đang chấm...
+        </span>
+      )
+    }
+
+    switch (sub.verdict) {
+      case 'ACCEPTED':
+        return (
+          <span className="verdict-accepted" style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' }}>
+            Accepted
+          </span>
+        )
+      case 'WRONG_ANSWER':
+        return (
+          <span className="verdict-rejected" style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' }}>
+            Wrong Answer
+          </span>
+        )
+      case 'TIME_LIMIT_EXCEEDED':
+        return (
+          <span className="verdict-warning" style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' }}>
+            Time Limit Exceeded
+          </span>
+        )
+      case 'MEMORY_LIMIT_EXCEEDED':
+        return (
+          <span className="verdict-warning" style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' }}>
+            Memory Limit Exceeded
+          </span>
+        )
+      case 'COMPILATION_ERROR':
+        return (
+          <span className="verdict-compile-err" style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' }}>
+            Compilation Error
+          </span>
+        )
+      case 'RUNTIME_ERROR':
+        return (
+          <span className="verdict-rejected" style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' }}>
+            Runtime Error
+          </span>
+        )
+      default:
+        return (
+          <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', background: '#f1f5f9', color: '#475569' }}>
+            {sub.verdict || sub.status}
+          </span>
+        )
     }
   }
 
@@ -285,6 +389,108 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                     Hệ thống sẽ tự động cập nhật thống kê chi tiết theo từng chủ đề khi bạn nộp bài giải.
                   </div>
                 </div>
+              </div>
+
+              {/* Recent Submissions Section */}
+              <div style={{ marginTop: '24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <h4 style={{ margin: 0, color: '#1755a6', fontSize: '14px' }}>
+                    Lịch sử nộp bài gần đây
+                  </h4>
+                  <button
+                    type="button"
+                    className="btn-cf"
+                    onClick={fetchProfileAndSubmissions}
+                    disabled={loadingSubmissions}
+                    style={{ fontSize: '11.5px', padding: '3px 10px' }}
+                  >
+                    {loadingSubmissions ? 'Đang tải...' : 'Làm mới'}
+                  </button>
+                </div>
+
+                {loadingSubmissions ? (
+                  <div style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>
+                    Đang nạp lịch sử nộp bài...
+                  </div>
+                ) : recentSubmissions.length === 0 ? (
+                  <div style={{ padding: '24px', textAlign: 'center', background: '#f8f9fa', borderRadius: '4px', border: '1px dashed #cbd5e1' }}>
+                    <div style={{ color: '#475569', fontWeight: 600, marginBottom: '6px' }}>Chưa có bài nộp nào</div>
+                    <div style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '12px' }}>
+                      Bạn chưa nộp bài giải nào. Hãy bắt đầu thử sức với các bài tập thuật toán ngay hôm nay!
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-cf btn-cf-primary"
+                      onClick={() => onNavigate('problemset')}
+                    >
+                      Khám phá kho bài tập
+                    </button>
+                  </div>
+                ) : (
+                  <div className="table-responsive">
+                    <table className="problem-table" style={{ width: '100%' }}>
+                      <thead>
+                        <tr>
+                          <th style={{ width: '90px' }}>Mã nộp</th>
+                          <th>Bài tập</th>
+                          <th style={{ width: '150px', textAlign: 'center' }}>Kết quả</th>
+                          <th style={{ width: '100px', textAlign: 'center' }}>Ngôn ngữ</th>
+                          <th style={{ width: '110px', textAlign: 'center' }}>Thời gian</th>
+                          <th style={{ width: '100px', textAlign: 'center' }}>Bộ nhớ</th>
+                          <th style={{ width: '150px', textAlign: 'right' }}>Thời điểm nộp</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {recentSubmissions.map((sub) => {
+                          const shortId = sub.id ? sub.id.substring(0, 8) : '—'
+                          return (
+                            <tr key={sub.id}>
+                              <td style={{ fontFamily: 'Consolas, monospace', fontSize: '12px', color: '#64748b' }}>
+                                #{shortId}
+                              </td>
+                              <td>
+                                {sub.problemSlug ? (
+                                  <a
+                                    href={`#problem/${sub.problemSlug}`}
+                                    className="problem-title-link"
+                                    onClick={(e) => {
+                                      e.preventDefault()
+                                      if (onSelectProblem && sub.problemSlug) {
+                                        onSelectProblem(sub.problemSlug)
+                                      } else if (sub.problemSlug) {
+                                        window.location.hash = `problem/${sub.problemSlug}`
+                                      }
+                                    }}
+                                    style={{ fontWeight: 600 }}
+                                  >
+                                    {sub.problemTitle || sub.problemSlug}
+                                  </a>
+                                ) : (
+                                  <span>{sub.problemTitle || 'Bài tập'}</span>
+                                )}
+                              </td>
+                              <td style={{ textAlign: 'center' }}>
+                                {renderVerdictBadge(sub)}
+                              </td>
+                              <td style={{ textAlign: 'center', fontFamily: 'Consolas, monospace', fontSize: '12px' }}>
+                                {sub.language}
+                              </td>
+                              <td style={{ textAlign: 'center', fontSize: '12px', color: '#475569' }}>
+                                {formatRuntime(sub.runtimeMs)}
+                              </td>
+                              <td style={{ textAlign: 'center', fontSize: '12px', color: '#475569' }}>
+                                {formatMemory(sub.memoryKb)}
+                              </td>
+                              <td style={{ textAlign: 'right', fontSize: '11.5px', color: '#64748b' }}>
+                                {formatDateTime(sub.submittedAt)}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
