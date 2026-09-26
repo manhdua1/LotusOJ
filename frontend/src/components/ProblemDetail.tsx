@@ -4,6 +4,7 @@ import type { Language, RunCodeResponse, SubmissionResponse } from '../types/sub
 import { problemService } from '../services/problemService'
 import { submissionService } from '../services/submissionService'
 import { authService } from '../services/authService'
+import { codeDraftService } from '../services/codeDraftService'
 import { CodeEditor } from './CodeEditor'
 import { CODE_TEMPLATES } from '../constants/editorTemplates'
 import { SubmissionResultView } from './SubmissionResultView'
@@ -63,13 +64,49 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
   const [selectedResultSampleIdx, setSelectedResultSampleIdx] = useState<number>(0)
 
   // Submit code state
-  const [selectedLanguage, setSelectedLanguage] = useState<Language>('CPP')
+  const [selectedLanguage, setSelectedLanguage] = useState<Language>(() => {
+    return codeDraftService.getLastLanguage(slug) || 'CPP'
+  })
   const [sourceCode, setSourceCode] = useState<string>(() => {
-    return CODE_TEMPLATES['CPP'] || ''
+    const initLang = codeDraftService.getLastLanguage(slug) || 'CPP'
+    const draft = codeDraftService.getDraft(slug, initLang)
+    return draft !== null ? draft : (CODE_TEMPLATES[initLang] || '')
   })
   const [submitting, setSubmitting] = useState<boolean>(false)
   const [currentSubmission, setCurrentSubmission] = useState<SubmissionResponse | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
+
+  // Track draft refs for smooth cross-problem switching
+  const prevSlugRef = useRef<string>(slug)
+  const prevLangRef = useRef<Language>(selectedLanguage)
+  const sourceCodeRef = useRef<string>(sourceCode)
+
+  useEffect(() => {
+    sourceCodeRef.current = sourceCode
+  }, [sourceCode])
+
+  useEffect(() => {
+    prevLangRef.current = selectedLanguage
+  }, [selectedLanguage])
+
+  // When problem slug changes (switching between problems)
+  useEffect(() => {
+    if (prevSlugRef.current !== slug) {
+      if (prevSlugRef.current && prevLangRef.current) {
+        codeDraftService.saveDraft(prevSlugRef.current, prevLangRef.current, sourceCodeRef.current)
+      }
+      prevSlugRef.current = slug
+
+      const newLang = codeDraftService.getLastLanguage(slug) || 'CPP'
+      setSelectedLanguage(newLang)
+      prevLangRef.current = newLang
+
+      const draft = codeDraftService.getDraft(slug, newLang)
+      const initialCode = draft !== null ? draft : (CODE_TEMPLATES[newLang] || '')
+      setSourceCode(initialCode)
+      sourceCodeRef.current = initialCode
+    }
+  }, [slug])
 
   // Fullscreen state
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false)
@@ -119,9 +156,20 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
   }
 
   const handleLanguageChange = (newLang: Language) => {
-    const currentTemplate = CODE_TEMPLATES[selectedLanguage]
+    if (newLang === selectedLanguage) return
+
+    // Save draft for current language before switching
+    codeDraftService.saveDraft(slug, selectedLanguage, sourceCode)
+
     setSelectedLanguage(newLang)
-    if (!sourceCode.trim() || sourceCode.trim() === currentTemplate?.trim()) {
+    prevLangRef.current = newLang
+    codeDraftService.saveLastLanguage(slug, newLang)
+
+    // Load draft for new language or starter template
+    const draft = codeDraftService.getDraft(slug, newLang)
+    if (draft !== null) {
+      setSourceCode(draft)
+    } else {
       setSourceCode(CODE_TEMPLATES[newLang] || '')
     }
   }
@@ -696,12 +744,18 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
                 disabled={submitting}
                 onChange={(e) => handleLanguageChange(e.target.value as Language)}
               >
-                <option value="CPP">C++ (GCC 13.2)</option>
-                <option value="JAVA">Java 17 (OpenJDK)</option>
-                <option value="PYTHON">Python 3.11</option>
-                <option value="C">C (GCC 13.2)</option>
-                <option value="CSHARP">C# (.NET 8)</option>
+                <option value="CPP">C++ (GCC 13.2){codeDraftService.hasDraft(slug, 'CPP') ? ' • Bản nháp' : ''}</option>
+                <option value="JAVA">Java 17 (OpenJDK){codeDraftService.hasDraft(slug, 'JAVA') ? ' • Bản nháp' : ''}</option>
+                <option value="PYTHON">Python 3.11{codeDraftService.hasDraft(slug, 'PYTHON') ? ' • Bản nháp' : ''}</option>
+                <option value="C">C (GCC 13.2){codeDraftService.hasDraft(slug, 'C') ? ' • Bản nháp' : ''}</option>
+                <option value="CSHARP">C# (.NET 8){codeDraftService.hasDraft(slug, 'CSHARP') ? ' • Bản nháp' : ''}</option>
               </select>
+
+              {codeDraftService.hasDraft(slug, selectedLanguage) && (
+                <span className="leetcode-lang-draft-badge" title="Đang mở bản nháp đã tự động lưu">
+                  Bản nháp
+                </span>
+              )}
             </div>
 
             <div className="leetcode-lang-shortcut-hint">
@@ -715,6 +769,7 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
               language={selectedLanguage}
               value={sourceCode}
               onChange={setSourceCode}
+              problemSlug={slug}
               disabled={submitting || runningCode}
               height="100%"
               isFullscreen={isFullscreen}

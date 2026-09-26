@@ -2338,6 +2338,73 @@ a:hover {
   font-size: 9.5px;
 }
 
+/* Code Draft & Auto-save Status */
+.leetcode-lang-draft-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  background-color: #e0e7ff;
+  color: #4338ca;
+  border-radius: 4px;
+  letter-spacing: 0.2px;
+}
+
+.leetcode-autosave-indicator {
+  display: inline-flex;
+  align-items: center;
+}
+
+.autosave-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+}
+
+.autosave-saving {
+  color: #fde047;
+}
+
+.autosave-pulse-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: #fde047;
+  display: inline-block;
+  animation: autosave-pulse 0.9s infinite alternate ease-in-out;
+}
+
+@keyframes autosave-pulse {
+  0% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+.autosave-saved {
+  color: #86efac;
+}
+
+.autosave-idle {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.autosave-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.5);
+  display: inline-block;
+}
+
 /* LeetCode Bottom Console Drawer (Light Default) */
 .leetcode-console-drawer {
   background-color: #f8fafc;
