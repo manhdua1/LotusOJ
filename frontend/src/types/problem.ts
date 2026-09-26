@@ -44,6 +44,7 @@ export interface ProblemDetailResponse {
   tags: string[]
   sampleTestCases: TestCaseResponse[]
   acceptanceRate?: number
+  solvedByCurrentUser?: boolean | null
   createdAt?: string
 }
 

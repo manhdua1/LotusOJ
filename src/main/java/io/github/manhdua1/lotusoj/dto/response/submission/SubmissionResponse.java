@@ -21,6 +21,7 @@ public class SubmissionResponse {
     UUID userId;
     String username;
     Language language;
+    String sourceCode;
     SubmissionStatus status;
     Verdict verdict;
     Integer runtimeMs;

@@ -30,6 +30,7 @@ public interface ProblemMapper {
     @Mapping(target = "tags", source = "tags", qualifiedByName = "mapTagsToStringList")
     @Mapping(target = "acceptanceRate", expression = "java(calculateAcceptanceRate(problem))")
     @Mapping(target = "sampleTestCases", ignore = true)
+    @Mapping(target = "solvedByCurrentUser", ignore = true)
     ProblemDetailResponse toProblemDetailResponse(Problem problem);
 
     @Mapping(target = "tags", source = "tags", qualifiedByName = "mapTagsToStringList")

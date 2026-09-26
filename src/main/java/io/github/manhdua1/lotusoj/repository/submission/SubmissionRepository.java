@@ -25,6 +25,8 @@ public interface SubmissionRepository extends JpaRepository<Submission, UUID>, J
 
     boolean existsByUserIdAndProblemIdAndVerdict(UUID userId, UUID problemId, Verdict verdict);
 
+    long countByUserIdAndProblemIdAndVerdict(UUID userId, UUID problemId, Verdict verdict);
+
     long countByProblemIdAndVerdict(UUID problemId, Verdict verdict);
 
     long countByProblemId(UUID problemId);
@@ -40,6 +42,10 @@ public interface SubmissionRepository extends JpaRepository<Submission, UUID>, J
     @Query("SELECT s.language, COUNT(s) FROM Submission s WHERE s.problem.id = :problemId GROUP BY s.language")
     List<Object[]> countSubmissionsByLanguageForProblem(@Param("problemId") UUID problemId);
 
-    @Query("SELECT DISTINCT s.problem.id FROM Submission s WHERE s.user.id = :userId AND s.verdict = 'ACCEPTED'")
+    @Query("SELECT DISTINCT s.problem.id FROM Submission s WHERE s.problem.id IS NOT NULL AND s.user.id = :userId AND s.verdict = 'ACCEPTED'")
     List<UUID> findSolvedProblemIdsByUserId(@Param("userId") UUID userId);
+
+    @Query("SELECT DISTINCT s.problem.id FROM Submission s WHERE s.problem.id IS NOT NULL AND s.user.id = :userId")
+    List<UUID> findAttemptedProblemIdsByUserId(@Param("userId") UUID userId);
 }
+

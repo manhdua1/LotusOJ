@@ -9,6 +9,7 @@ import io.github.manhdua1.lotusoj.exception.AppException;
 import io.github.manhdua1.lotusoj.exception.ErrorCode;
 import io.github.manhdua1.lotusoj.mapper.UserMapper;
 import io.github.manhdua1.lotusoj.repository.auth.UserRepository;
+import io.github.manhdua1.lotusoj.repository.submission.SubmissionRepository;
 import io.github.manhdua1.lotusoj.service.auth.AuthService;
 import io.jsonwebtoken.Claims;
 import jakarta.transaction.Transactional;
@@ -25,6 +26,7 @@ import org.springframework.stereotype.Service;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AuthServiceImpl implements AuthService {
     UserRepository userRepository;
+    SubmissionRepository submissionRepository;
     PasswordEncoder passwordEncoder;
     UserMapper userMapper;
     JwtServiceImpl jwtService;
@@ -85,9 +87,27 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public UserResponse getProfile(java.util.UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        int actualSolved = submissionRepository.findSolvedProblemIdsByUserId(user.getId()).size();
+        long actualSubmissions = submissionRepository.countByUserId(user.getId());
+
+        boolean changed = false;
+        if (user.getTotalSolved() == null || user.getTotalSolved() != actualSolved) {
+            user.setTotalSolved(actualSolved);
+            changed = true;
+        }
+        if (user.getTotalSubmissions() == null || user.getTotalSubmissions() != (int) actualSubmissions) {
+            user.setTotalSubmissions((int) actualSubmissions);
+            changed = true;
+        }
+        if (changed) {
+            userRepository.save(user);
+        }
+
         return userMapper.toUserResponse(user);
     }
 }

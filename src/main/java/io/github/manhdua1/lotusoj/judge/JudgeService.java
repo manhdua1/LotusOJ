@@ -14,6 +14,8 @@ import io.github.manhdua1.lotusoj.judge.dto.ExecutionResult;
 import io.github.manhdua1.lotusoj.exception.AppException;
 import io.github.manhdua1.lotusoj.exception.ErrorCode;
 import io.github.manhdua1.lotusoj.mapper.SubmissionMapper;
+import io.github.manhdua1.lotusoj.entity.auth.User;
+import io.github.manhdua1.lotusoj.repository.auth.UserRepository;
 import io.github.manhdua1.lotusoj.repository.problem.ProblemRepository;
 import io.github.manhdua1.lotusoj.repository.submission.SubmissionRepository;
 import io.github.manhdua1.lotusoj.repository.submission.SubmissionResultRepository;
@@ -41,6 +43,7 @@ public class JudgeService {
     private final SubmissionResultRepository submissionResultRepository;
     private final TestCaseService testCaseService;
     private final ProblemRepository problemRepository;
+    private final UserRepository userRepository;
     private final ProblemRedisService problemRedisService;
     private final DockerExecutor dockerExecutor;
     private final SimpMessagingTemplate messagingTemplate;
@@ -326,6 +329,29 @@ public class JudgeService {
             }
         } catch (Exception e) {
             log.warn("Failed to update problem statistics for problem {}", submission.getProblem().getId(), e);
+        }
+
+        // Update user statistics in DB
+        try {
+            if (submission.getUser() != null) {
+                User user = userRepository.findById(submission.getUser().getId()).orElse(null);
+                if (user != null) {
+                    int currSubmissions = user.getTotalSubmissions() != null ? user.getTotalSubmissions() : 0;
+                    user.setTotalSubmissions(currSubmissions + 1);
+                    if (verdict == Verdict.ACCEPTED) {
+                        long acceptedCount = submissionRepository.countByUserIdAndProblemIdAndVerdict(
+                                user.getId(), submission.getProblem().getId(), Verdict.ACCEPTED);
+                        // If this submission was saved as ACCEPTED, count is 1 for the first time
+                        if (acceptedCount <= 1) {
+                            int currSolved = user.getTotalSolved() != null ? user.getTotalSolved() : 0;
+                            user.setTotalSolved(currSolved + 1);
+                        }
+                    }
+                    userRepository.save(user);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to update user statistics for user {}", submission.getUser() != null ? submission.getUser().getId() : "null", e);
         }
 
         // Cache finished submission in Redis & evict recent list cache

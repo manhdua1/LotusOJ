@@ -216,6 +216,7 @@ function App() {
               <UserProfile
                 initialUser={user}
                 onNavigate={handleNavigate}
+                onSelectProblem={handleSelectProblem}
                 onLogout={handleLogout}
               />
             ) : currentTab === 'register' ? (

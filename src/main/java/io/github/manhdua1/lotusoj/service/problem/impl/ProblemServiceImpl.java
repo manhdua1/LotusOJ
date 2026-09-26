@@ -15,10 +15,12 @@ import io.github.manhdua1.lotusoj.exception.AppException;
 import io.github.manhdua1.lotusoj.exception.ErrorCode;
 import io.github.manhdua1.lotusoj.mapper.ProblemMapper;
 import io.github.manhdua1.lotusoj.mapper.TestCaseMapper;
+import io.github.manhdua1.lotusoj.entity.submission.Verdict;
 import io.github.manhdua1.lotusoj.repository.auth.UserRepository;
 import io.github.manhdua1.lotusoj.repository.problem.ProblemRepository;
 import io.github.manhdua1.lotusoj.repository.problem.ProblemSpecification;
 import io.github.manhdua1.lotusoj.repository.problem.TagRepository;
+import io.github.manhdua1.lotusoj.repository.submission.SubmissionRepository;
 import io.github.manhdua1.lotusoj.repository.testCase.TestCaseRepository;
 import io.github.manhdua1.lotusoj.service.problem.ProblemRedisService;
 import io.github.manhdua1.lotusoj.service.problem.ProblemService;
@@ -48,6 +50,7 @@ public class ProblemServiceImpl implements ProblemService {
     TagRepository tagRepository;
     TestCaseRepository testCaseRepository;
     UserRepository userRepository;
+    SubmissionRepository submissionRepository;
     ProblemMapper problemMapper;
     TestCaseMapper testCaseMapper;
     ProblemRedisService problemRedisService;
@@ -124,6 +127,13 @@ public class ProblemServiceImpl implements ProblemService {
             if (canViewProblemStatus(detail.getStatus(), currentUserOpt)) {
                 // Enrich real-time acceptance rate from Redis stats counter
                 problemRedisService.getProblemStats(id).ifPresent(stats -> detail.setAcceptanceRate(stats.getAcceptanceRate()));
+                if (currentUserOpt.isPresent()) {
+                    boolean solved = submissionRepository.existsByUserIdAndProblemIdAndVerdict(
+                            currentUserOpt.get().getId(), detail.getId(), Verdict.ACCEPTED);
+                    detail.setSolvedByCurrentUser(solved);
+                } else {
+                    detail.setSolvedByCurrentUser(null);
+                }
                 return detail;
             }
         }
@@ -143,6 +153,14 @@ public class ProblemServiceImpl implements ProblemService {
             problemRedisService.saveProblemStats(problem.getId(), problem.getTotalSubmissions(), problem.getTotalAccepted(), response.getAcceptanceRate());
         }
 
+        if (currentUserOpt.isPresent()) {
+            boolean solved = submissionRepository.existsByUserIdAndProblemIdAndVerdict(
+                    currentUserOpt.get().getId(), response.getId(), Verdict.ACCEPTED);
+            response.setSolvedByCurrentUser(solved);
+        } else {
+            response.setSolvedByCurrentUser(null);
+        }
+
         return response;
     }
 
@@ -158,6 +176,13 @@ public class ProblemServiceImpl implements ProblemService {
             if (canViewProblemStatus(detail.getStatus(), currentUserOpt)) {
                 // Enrich real-time acceptance rate from Redis stats counter
                 problemRedisService.getProblemStats(detail.getId()).ifPresent(stats -> detail.setAcceptanceRate(stats.getAcceptanceRate()));
+                if (currentUserOpt.isPresent()) {
+                    boolean solved = submissionRepository.existsByUserIdAndProblemIdAndVerdict(
+                            currentUserOpt.get().getId(), detail.getId(), Verdict.ACCEPTED);
+                    detail.setSolvedByCurrentUser(solved);
+                } else {
+                    detail.setSolvedByCurrentUser(null);
+                }
                 return detail;
             }
         }
@@ -176,6 +201,14 @@ public class ProblemServiceImpl implements ProblemService {
         if (problem.getStatus() == Problem.ProblemStatus.PUBLISHED) {
             problemRedisService.saveProblemDetail(response);
             problemRedisService.saveProblemStats(problem.getId(), problem.getTotalSubmissions(), problem.getTotalAccepted(), response.getAcceptanceRate());
+        }
+
+        if (currentUserOpt.isPresent()) {
+            boolean solved = submissionRepository.existsByUserIdAndProblemIdAndVerdict(
+                    currentUserOpt.get().getId(), response.getId(), Verdict.ACCEPTED);
+            response.setSolvedByCurrentUser(solved);
+        } else {
+            response.setSolvedByCurrentUser(null);
         }
 
         return response;
@@ -200,6 +233,13 @@ public class ProblemServiceImpl implements ProblemService {
         }
 
         boolean isAuthenticated = currentUserOpt.isPresent();
+        Set<UUID> solvedIds = isAuthenticated
+                ? new HashSet<>(submissionRepository.findSolvedProblemIdsByUserId(currentUserOpt.get().getId()))
+                : Collections.emptySet();
+        Set<UUID> attemptedIds = isAuthenticated
+                ? new HashSet<>(submissionRepository.findAttemptedProblemIdsByUserId(currentUserOpt.get().getId()))
+                : Collections.emptySet();
+
         boolean isPublicQuery = !canViewAllStatuses && (filterRequest == null || filterRequest.getSolved() == null);
         String cacheKey = isPublicQuery ? problemRedisService.generateListCacheKey(filterRequest, pageable) : null;
 
@@ -209,26 +249,70 @@ public class ProblemServiceImpl implements ProblemService {
             if (cachedList.isPresent()) {
                 PageResponse<ProblemSummaryResponse> pr = cachedList.get();
                 List<ProblemSummaryResponse> content = pr.getContent() != null ? pr.getContent() : Collections.emptyList();
+                content.forEach(p -> {
+                    if (!isAuthenticated) {
+                        p.setSolvedByCurrentUser(null);
+                    } else if (solvedIds.contains(p.getId())) {
+                        p.setSolvedByCurrentUser(Boolean.TRUE);
+                    } else if (attemptedIds.contains(p.getId())) {
+                        p.setSolvedByCurrentUser(Boolean.FALSE);
+                    } else {
+                        p.setSolvedByCurrentUser(null);
+                    }
+                });
                 return new org.springframework.data.domain.PageImpl<>(content, pageable, pr.getTotalElements());
             }
         }
 
-        Specification<Problem> specification = ProblemSpecification.filter(filterRequest, effectiveStatus);
+        Specification<Problem> specification = ProblemSpecification.filter(
+                filterRequest,
+                effectiveStatus,
+                isAuthenticated ? new ArrayList<>(solvedIds) : Collections.emptyList()
+        );
         Page<Problem> problemPage = problemRepository.findAll(specification, pageable);
 
         Page<ProblemSummaryResponse> summaryPage = problemPage.map(problem -> {
             ProblemSummaryResponse summary = problemMapper.toProblemSummaryResponse(problem);
-            if (isAuthenticated) {
-                summary.setSolvedByCurrentUser(false);
+            if (!isAuthenticated) {
+                summary.setSolvedByCurrentUser(null);
+            } else if (solvedIds.contains(problem.getId())) {
+                summary.setSolvedByCurrentUser(Boolean.TRUE);
+            } else if (attemptedIds.contains(problem.getId())) {
+                summary.setSolvedByCurrentUser(Boolean.FALSE);
             } else {
                 summary.setSolvedByCurrentUser(null);
             }
             return summary;
         });
 
-        // Save public query to Redis cache
+        // Save public query to Redis cache (with solvedByCurrentUser set to null)
         if (isPublicQuery && cacheKey != null) {
-            problemRedisService.saveProblemList(cacheKey, PageResponse.from(summaryPage));
+            List<ProblemSummaryResponse> cacheContent = summaryPage.getContent().stream()
+                    .map(item -> {
+                        ProblemSummaryResponse copy = new ProblemSummaryResponse();
+                        copy.setId(item.getId());
+                        copy.setSlug(item.getSlug());
+                        copy.setTitle(item.getTitle());
+                        copy.setDifficulty(item.getDifficulty());
+                        copy.setStatus(item.getStatus());
+                        copy.setTags(item.getTags());
+                        copy.setAcceptanceRate(item.getAcceptanceRate());
+                        copy.setSolvedByCurrentUser(null);
+                        copy.setCreatedAt(item.getCreatedAt());
+                        copy.setUpdatedAt(item.getUpdatedAt());
+                        return copy;
+                    }).toList();
+
+            problemRedisService.saveProblemList(cacheKey, PageResponse.<ProblemSummaryResponse>builder()
+                    .content(cacheContent)
+                    .page(summaryPage.getNumber())
+                    .size(summaryPage.getSize())
+                    .totalElements(summaryPage.getTotalElements())
+                    .totalPages(summaryPage.getTotalPages())
+                    .isFirst(summaryPage.isFirst())
+                    .isLast(summaryPage.isLast())
+                    .build()
+            );
         }
 
         return summaryPage;

@@ -30,6 +30,7 @@ public class ProblemDetailResponse {
     private List<String> tags;
     private List<TestCaseResponse> sampleTestCases; // chỉ test case có isSample=true
     private Double acceptanceRate;
+    private Boolean solvedByCurrentUser;
     private LocalDateTime createdAt;
     //private ProblemPermissions permissions; // canEdit, canDelete, canPublish (đã bàn ở phần phân quyền theo nút)
 }

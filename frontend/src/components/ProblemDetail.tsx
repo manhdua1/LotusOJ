@@ -36,7 +36,7 @@ interface ProblemDetailProps {
   onSelectTag?: (tag: string) => void
 }
 
-type ProblemTab = 'description' | 'testcases' | 'info'
+type ProblemTab = 'description' | 'testcases' | 'submissions' | 'info'
 type ConsoleTab = 'testcase' | 'runresult' | 'result' | 'ai'
 type DrawerSize = 'compact' | 'normal' | 'expanded'
 
@@ -55,6 +55,13 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
   const [activeConsoleTab, setActiveConsoleTab] = useState<ConsoleTab>('testcase')
   const [selectedTestCaseIdx, setSelectedTestCaseIdx] = useState<number>(0)
   const [drawerSize, setDrawerSize] = useState<DrawerSize>('normal')
+
+  // Submissions history state
+  const [problemSubmissions, setProblemSubmissions] = useState<SubmissionResponse[]>([])
+  const [loadingSubmissions, setLoadingSubmissions] = useState<boolean>(false)
+  const [submissionsError, setSubmissionsError] = useState<string | null>(null)
+  const [selectedSubmissionForView, setSelectedSubmissionForView] = useState<SubmissionResponse | null>(null)
+  const [copiedSubmissionCode, setCopiedSubmissionCode] = useState<boolean>(false)
 
   // Run code state (chạy thử chỉ trên testcase mẫu)
   const [runningCode, setRunningCode] = useState<boolean>(false)
@@ -171,12 +178,57 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
     }
   }, [slug])
 
+  const fetchProblemSubmissions = async () => {
+    if (!slug || !authService.isAuthenticated()) return
+    setLoadingSubmissions(true)
+    setSubmissionsError(null)
+    try {
+      const res = await submissionService.getMySubmissions({ problemSlug: slug, size: 50 })
+      setProblemSubmissions(res.content || [])
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setSubmissionsError(err.message)
+      } else {
+        setSubmissionsError('Lỗi tải lịch sử bài nộp.')
+      }
+    } finally {
+      setLoadingSubmissions(false)
+    }
+  }
+
+  useEffect(() => {
+    setProblemSubmissions([])
+    setSelectedSubmissionForView(null)
+  }, [slug])
+
+  useEffect(() => {
+    if (activeProblemTab === 'submissions' && problemSubmissions.length === 0 && !loadingSubmissions) {
+      fetchProblemSubmissions()
+    }
+  }, [activeProblemTab, slug])
+
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text)
     setCopiedId(id)
     setTimeout(() => {
       setCopiedId(null)
     }, 2000)
+  }
+
+  const handleLoadSubmissionCode = (sub: SubmissionResponse) => {
+    if (!sub.sourceCode) return
+    setSelectedLanguage(sub.language)
+    setSourceCode(sub.sourceCode)
+    sourceCodeRef.current = sub.sourceCode
+    codeDraftService.saveDraft(slug, sub.language, sub.sourceCode)
+    codeDraftService.saveLastLanguage(slug, sub.language)
+    setSelectedSubmissionForView(null)
+  }
+
+  const handleCopySubmissionCode = (code: string) => {
+    navigator.clipboard.writeText(code)
+    setCopiedSubmissionCode(true)
+    setTimeout(() => setCopiedSubmissionCode(false), 2000)
   }
 
   const handleLanguageChange = (newLang: Language) => {
@@ -216,6 +268,10 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
             pollIntervalRef.current = null
           }
           setSubmitting(false)
+          if (sub.verdict === 'ACCEPTED') {
+            setProblem((prev) => (prev ? { ...prev, solvedByCurrentUser: true } : null))
+          }
+          fetchProblemSubmissions()
         }
       } catch {
         if (pollAttempts >= maxAttempts && pollIntervalRef.current) {
@@ -263,6 +319,10 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
 
       if (sub.status === 'DONE' || sub.status === 'FAILED') {
         setSubmitting(false)
+        if (sub.verdict === 'ACCEPTED') {
+          setProblem((prev) => (prev ? { ...prev, solvedByCurrentUser: true } : null))
+        }
+        fetchProblemSubmissions()
       } else {
         startPollingSubmission(sub.id)
       }
@@ -449,6 +509,12 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
           <span className="leetcode-nav-sep">/</span>
           <span className="leetcode-problem-title">{problem.title}</span>
           {getDifficultyBadge(problem.difficulty)}
+          {problem.solvedByCurrentUser === true && (
+            <span className="leetcode-solved-badge" title="Bạn đã giải thành công bài tập này">
+              <IconCheck size={11} color="#16a34a" />
+              <span>Đã giải</span>
+            </span>
+          )}
         </div>
 
         <div className="leetcode-navbar-right">
@@ -512,6 +578,20 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
 
             <button
               type="button"
+              className={`leetcode-tab-btn ${activeProblemTab === 'submissions' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveProblemTab('submissions')
+                if (problemSubmissions.length === 0) {
+                  fetchProblemSubmissions()
+                }
+              }}
+            >
+              <IconTerminal size={13} />
+              <span>Lịch sử nộp {problemSubmissions.length > 0 ? `(${problemSubmissions.length})` : ''}</span>
+            </button>
+
+            <button
+              type="button"
               className={`leetcode-tab-btn ${activeProblemTab === 'info' ? 'active' : ''}`}
               onClick={() => setActiveProblemTab('info')}
             >
@@ -525,7 +605,15 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
             {activeProblemTab === 'description' && (
               <div className="leetcode-statement-area">
                 <div className="leetcode-title-block">
-                  <h1 className="leetcode-main-title">{problem.title}</h1>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                    <h1 className="leetcode-main-title" style={{ margin: 0 }}>{problem.title}</h1>
+                    {problem.solvedByCurrentUser === true && (
+                      <span className="leetcode-solved-tag" title="Bạn đã giải thành công bài tập này">
+                        <IconCheck size={13} color="#15803d" />
+                        <span>Đã giải thành công</span>
+                      </span>
+                    )}
+                  </div>
                   <div className="leetcode-meta-row">
                     <span className="leetcode-meta-pill">
                       <IconClock size={12} />
@@ -708,6 +796,138 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
                   </>
                 ) : (
                   <div className="leetcode-empty-state">Bài tập này chưa có dữ liệu test mẫu.</div>
+                )}
+              </div>
+            )}
+
+            {/* Submissions Tab */}
+            {activeProblemTab === 'submissions' && (
+              <div className="leetcode-submissions-container">
+                <div className="leetcode-submissions-header">
+                  <div>
+                    <h3 className="leetcode-submissions-title">Lịch sử bài nộp của bạn</h3>
+                    <span style={{ fontSize: '12px', color: '#64748b' }}>
+                      Toàn bộ các lần nộp bài cho bài toán này
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="leetcode-btn-secondary"
+                    onClick={fetchProblemSubmissions}
+                    disabled={loadingSubmissions}
+                    style={{ padding: '4px 10px', fontSize: '12px' }}
+                  >
+                    {loadingSubmissions ? <IconSpinner size={12} /> : null}
+                    <span>{loadingSubmissions ? 'Đang tải...' : 'Làm mới'}</span>
+                  </button>
+                </div>
+
+                {!authService.isAuthenticated() ? (
+                  <div style={{ padding: '30px 20px', textAlign: 'center', background: '#f8fafc', borderRadius: '6px', border: '1px dashed #cbd5e1' }}>
+                    <IconAlertCircle size={32} color="#64748b" />
+                    <h4 style={{ margin: '12px 0 6px 0', color: '#334155' }}>Yêu cầu đăng nhập</h4>
+                    <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
+                      Vui lòng đăng nhập tài khoản để xem các bài đã nộp cho bài tập này.
+                    </p>
+                  </div>
+                ) : loadingSubmissions && problemSubmissions.length === 0 ? (
+                  <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
+                    <IconSpinner size={24} />
+                    <div style={{ marginTop: '8px', fontSize: '13px' }}>Đang nạp lịch sử nộp bài...</div>
+                  </div>
+                ) : submissionsError ? (
+                  <div className="cf-notice cf-notice-error">
+                    {submissionsError}
+                    <button type="button" className="btn-cf" onClick={fetchProblemSubmissions} style={{ marginTop: '8px' }}>
+                      Thử lại
+                    </button>
+                  </div>
+                ) : problemSubmissions.length === 0 ? (
+                  <div style={{ padding: '30px 20px', textAlign: 'center', background: '#f8fafc', borderRadius: '6px', border: '1px dashed #cbd5e1' }}>
+                    <IconFileText size={32} color="#94a3b8" />
+                    <h4 style={{ margin: '12px 0 6px 0', color: '#334155' }}>Chưa có lượt nộp bài nào</h4>
+                    <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
+                      Bạn chưa nộp bài giải nào cho đề bài này. Viết mã và bấm "Nộp bài" để ghi nhận!
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table className="leetcode-submissions-table">
+                      <thead>
+                        <tr>
+                          <th>Kết quả</th>
+                          <th>Ngôn ngữ</th>
+                          <th>Thời gian</th>
+                          <th>Bộ nhớ</th>
+                          <th>Ngày nộp</th>
+                          <th style={{ textAlign: 'right' }}>Thao tác</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {problemSubmissions.map((sub) => {
+                          const isAc = sub.verdict === 'ACCEPTED'
+                          return (
+                            <tr
+                              key={sub.id}
+                              className="leetcode-submissions-row"
+                              onClick={() => setSelectedSubmissionForView(sub)}
+                              title="Bấm để xem chi tiết mã nguồn"
+                            >
+                              <td>
+                                <span
+                                  className={isAc ? 'verdict-accepted' : 'verdict-rejected'}
+                                  style={{
+                                    padding: '3px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '11px',
+                                    fontWeight: 700,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                  }}
+                                >
+                                  {isAc && <IconCheck size={11} color="#16a34a" />}
+                                  {sub.verdict || sub.status}
+                                </span>
+                              </td>
+                              <td style={{ fontFamily: 'Consolas, monospace', fontWeight: 600 }}>
+                                {sub.language}
+                              </td>
+                              <td style={{ color: '#475569' }}>
+                                {formatTime(sub.runtimeMs)}
+                              </td>
+                              <td style={{ color: '#475569' }}>
+                                {formatMemory(sub.memoryKb)}
+                              </td>
+                              <td style={{ color: '#64748b', fontSize: '11.5px' }}>
+                                {new Date(sub.submittedAt).toLocaleString('vi-VN', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  second: '2-digit',
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric',
+                                })}
+                              </td>
+                              <td style={{ textAlign: 'right' }}>
+                                <button
+                                  type="button"
+                                  className="leetcode-btn-secondary"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setSelectedSubmissionForView(sub)
+                                  }}
+                                  style={{ padding: '3px 8px', fontSize: '11.5px' }}
+                                >
+                                  Xem code
+                                </button>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </div>
             )}
@@ -1144,6 +1364,111 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Submission Detail Inspection Modal */}
+      {selectedSubmissionForView && (
+        <div className="leetcode-modal-overlay" onClick={() => setSelectedSubmissionForView(null)}>
+          <div className="leetcode-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="leetcode-modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#1e293b' }}>
+                  Chi tiết bài nộp #{selectedSubmissionForView.id.substring(0, 8)}
+                </h3>
+                <span
+                  className={selectedSubmissionForView.verdict === 'ACCEPTED' ? 'verdict-accepted' : 'verdict-rejected'}
+                  style={{
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  {selectedSubmissionForView.verdict === 'ACCEPTED' && <IconCheck size={11} color="#16a34a" />}
+                  {selectedSubmissionForView.verdict || selectedSubmissionForView.status}
+                </span>
+              </div>
+              <button
+                type="button"
+                className="leetcode-btn-secondary"
+                onClick={() => setSelectedSubmissionForView(null)}
+                style={{ padding: '4px 8px', fontSize: '12px' }}
+              >
+                Đóng
+              </button>
+            </div>
+
+            <div className="leetcode-modal-body">
+              {/* Meta Stats Row */}
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', padding: '10px 14px', background: '#f8fafc', borderRadius: '6px', fontSize: '12.5px' }}>
+                <div>Ngôn ngữ: <strong>{selectedSubmissionForView.language}</strong></div>
+                <div>Thời gian: <strong>{formatTime(selectedSubmissionForView.runtimeMs)}</strong></div>
+                <div>Bộ nhớ: <strong>{formatMemory(selectedSubmissionForView.memoryKb)}</strong></div>
+                {selectedSubmissionForView.totalTestCount ? (
+                  <div>Testcase: <strong>{selectedSubmissionForView.passTestCount ?? 0}/{selectedSubmissionForView.totalTestCount} đạt</strong></div>
+                ) : null}
+                <div>Ngày nộp: <strong>{new Date(selectedSubmissionForView.submittedAt).toLocaleString('vi-VN')}</strong></div>
+              </div>
+
+              {/* Compile Error Log if present */}
+              {selectedSubmissionForView.compileErrorLog && (
+                <div>
+                  <div style={{ fontWeight: 600, color: '#dc2626', marginBottom: '6px', fontSize: '12.5px' }}>
+                    Chi tiết lỗi biên dịch:
+                  </div>
+                  <pre style={{ background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca', padding: '10px', borderRadius: '6px', fontSize: '12px', overflowX: 'auto', margin: 0 }}>
+                    {selectedSubmissionForView.compileErrorLog}
+                  </pre>
+                </div>
+              )}
+
+              {/* Source code */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <span style={{ fontWeight: 600, fontSize: '12.5px', color: '#334155' }}>Mã nguồn đã nộp:</span>
+                  {selectedSubmissionForView.sourceCode && (
+                    <button
+                      type="button"
+                      className="leetcode-copy-icon-btn"
+                      onClick={() => handleCopySubmissionCode(selectedSubmissionForView.sourceCode!)}
+                      style={{ fontSize: '11.5px', padding: '2px 8px' }}
+                    >
+                      {copiedSubmissionCode ? <IconCheck size={12} color="#16a34a" /> : <IconCopy size={12} />}
+                      <span>{copiedSubmissionCode ? 'Đã sao chép' : 'Sao chép mã'}</span>
+                    </button>
+                  )}
+                </div>
+                <pre className="leetcode-code-viewer">
+                  {selectedSubmissionForView.sourceCode || '// Không có mã nguồn được lưu trữ cho lần nộp này.'}
+                </pre>
+              </div>
+            </div>
+
+            <div className="leetcode-modal-footer">
+              {selectedSubmissionForView.sourceCode && (
+                <button
+                  type="button"
+                  className="leetcode-btn-primary"
+                  onClick={() => handleLoadSubmissionCode(selectedSubmissionForView)}
+                  style={{ fontSize: '12.5px' }}
+                >
+                  Nạp vào trình soạn thảo
+                </button>
+              )}
+              <button
+                type="button"
+                className="leetcode-btn-secondary"
+                onClick={() => setSelectedSubmissionForView(null)}
+                style={{ fontSize: '12.5px' }}
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
