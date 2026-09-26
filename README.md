@@ -210,7 +210,7 @@ Copy `.env.example` to `.env` and adjust values as needed.
 | RABBITMQ_PASS         | guest               | RabbitMQ password                                |
 | JWT_SIGNER_KEY        | (default key)       | HMAC-SHA key for signing JWT tokens              |
 | GEMINI_API_KEY        | (empty)             | Google Gemini API key for AI complexity analysis |
-| GEMINI_MODEL          | gemini-2.5-flash    | Gemini model name                                |
+| GEMINI_MODEL          | gemini-3.8-flash    | Gemini model name                                |
 
 If `GEMINI_API_KEY` is left empty, the AI complexity analysis feature is disabled gracefully.
 

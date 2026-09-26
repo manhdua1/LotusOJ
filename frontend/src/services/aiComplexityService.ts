@@ -29,7 +29,7 @@ export interface ComplexityAnalysisResult {
 
 /**
  * AI Complexity Analysis Engine for LotusOJ
- * Powered by Google Gemini 2.5 Flash with Prompt Engineering & Local Fallback.
+ * Powered by Google Gemini 3.8 Flash with Prompt Engineering & Local Fallback.
  */
 class AIComplexityService {
   public async analyzeCode(
@@ -38,7 +38,7 @@ class AIComplexityService {
     problemTitle?: string
   ): Promise<ComplexityAnalysisResult> {
     try {
-      console.log('[AI Complexity Service] Sending code to Gemini 2.5 Flash via /api/ai/analyze-complexity...')
+      console.log('[AI Complexity Service] Sending code to Gemini 3.8 Flash via /api/ai/analyze-complexity...')
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       }
